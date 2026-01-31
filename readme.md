@@ -40,23 +40,23 @@ pip install -e .
 
 | Module | Description | Documentation |
 |--------|-------------|---------------|
-| `logging_utils` | Enhanced logging with timestamps, custom levels, and `warn_once()` | [logging.md](logging.md) |
-| `file_utils` | File operations, hashing, compression, log file management | [file_utils.md](file_utils.md) |
-| `yaml_utils` | `PDYaml` class extending Pydantic with YAML support | [yaml_utils/readme.md](yaml_utils/readme.md) |
-| `crypto_utils` | AES-128-GCM encryption and authentication file management | [crypto_utils/readme.md](crypto_utils/readme.md) |
-| `time_utils` | DateTime/Timestamp utilities, timezone handling, time rounding | [time_utils.md](time_utils.md) |
-| `subprocess_utils` | Cross-platform subprocess management and process control | [subprocess_utils.md](subprocess_utils.md) |
-| `cache_utils` | File-based and in-memory caching with thread-safe operations | [cache_utils.md](cache_utils.md) |
-| `pandas_utils` | DataFrame manipulation, rollup operations, markdown export | [pandas_utils.md](pandas_utils.md) |
 | `base_utils` | Base conversion (2-64) and platform detection | [Details](#base_utils) |
-| `enumerate` | C++-style enumerations with bit flags and key-value support | [Details](#enumerate) |
-| `group_utils` | User and group utilities (cross-platform) | [Details](#group_utils) |
-| `exceptions` | Exception formatting and logging helpers | [Details](#exceptions) |
-| `regex_utils` | Pre-compiled regex patterns for common string operations | [Details](#regex_utils) |
+| `cache_utils` | File-based and in-memory caching with thread-safe operations | [cache_utils.md](cache_utils.md) |
+| `crypto_utils` | AES-128-GCM encryption and authentication file management | [crypto_utils/readme.md](crypto_utils/readme.md) |
 | `date_utils` | Date conversion, month boundaries, ISO formatting | [Details](#date_utils) |
-| `general` | JSON loading, string/list utilities, compression helpers | [Details](#general) |
+| `enumerate` | C++-style enumerations with bit flags and key-value support | [Details](#enumerate) |
+| `exceptions` | Exception formatting and logging helpers | [Details](#exceptions) |
+| `file_utils` | File operations, hashing, compression, log file management | [file_utils.md](file_utils.md) |
 | `general_classes` | Generic utility classes (DictClass, ArgParseRangeAction) | [Details](#general_classes) |
-| `git_utils` | Git repository management, tagging, submodule handling | [Details](#git_utils) |
+| `general` | JSON loading, string/list utilities, compression helpers | [Details](#general) |
+| `git_utils` | Git repository management, tagging, submodule handling | [git_utils/readme.md](git_utils/readme.md) |
+| `group_utils` | User and group utilities (cross-platform) | [Details](#group_utils) |
+| `logging_utils` | Enhanced logging with timestamps, custom levels, and `warn_once()` | [logging.md](logging.md) |
+| `pandas_utils` | DataFrame manipulation, rollup operations, markdown export | [pandas_utils.md](pandas_utils.md) |
+| `regex_utils` | Pre-compiled regex patterns for common string operations | [Details](#regex_utils) |
+| `subprocess_utils` | Cross-platform subprocess management and process control | [subprocess_utils.md](subprocess_utils.md) |
+| `time_utils` | DateTime/Timestamp utilities, timezone handling, time rounding | [time_utils.md](time_utils.md) |
+| `yaml_utils` | `PDYaml` class extending Pydantic with YAML support | [yaml_utils/readme.md](yaml_utils/readme.md) |
 
 ## Running Tests
 
@@ -350,57 +350,3 @@ parser.add_argument(
 )
 ```
 
-### git_utils
-
-Git repository management utilities as a subpackage.
-
-```python
-from ionbus_utils.git_utils import (
-    get_current_branch,
-    get_latest_tag,
-    auto_generate_tag,
-    git_status_summary,
-    git_repo_status,
-    git_branch_locations,
-    verify_ready_to_push,
-    run_many_git_commands,
-    all_submodule_status,
-)
-
-# Get current branch
-branch = get_current_branch("/path/to/repo")  # "main"
-
-# Get latest tag
-tag = get_latest_tag("/path/to/repo")  # "v1.2.3"
-
-# Auto-generate next tag based on commit message hashtags
-# (#Major, #Minor, #Inc, #Bug/Fix, #RC, #Prod)
-next_tag = auto_generate_tag("/path/to/repo")  # "v1.2.4"
-
-# Get concise status (uncommitted changes only)
-status = git_status_summary()
-
-# Get full repo status including submodules
-full_status = git_repo_status("/path/to/repo", log_results=True)
-
-# Get branch worktree locations
-locations = git_branch_locations()  # {"main": "/path/main", ...}
-
-# Run multiple git commands sequentially
-success, results = run_many_git_commands(
-    ["git fetch", "git pull", "git submodule update"],
-    repo_dir="/path/to/repo",
-    throw_on_error=True,
-)
-
-# Check submodule status
-issues = all_submodule_status("/path/to/repo")
-# {"submodule_name": ["changes to be committed", ...]}
-
-# Verify ready to push (exits with error if issues found)
-verify_ready_to_push("/path/to/repo")
-```
-
-**Command-line tools:**
-- `git_utils.deploy`: Clone repos, pull latest, create branches
-- `git_utils.auto_tag`: Automatically generate and push version tags
