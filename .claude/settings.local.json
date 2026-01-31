@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/ProgramData/anaconda3/Scripts/conda.exe run --no-capture-output -n py312_dev python -m pytest tests/ -v --tb=short)"
+    ]
+  }
+}
