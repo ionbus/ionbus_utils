@@ -38,7 +38,7 @@ pip install -e .
 | `time_utils` | DateTime/Timestamp utilities, timezone handling, time rounding |
 | `yaml_utils` | `PDYaml` class extending Pydantic with YAML support |
 
-Full [documentation on github](https://github.com/ionbus/ionbus_utils/blob/main/readme_pip.md?tab=readme-ov-file#ionbus_utils).
+Full [documentation on github](https://github.com/ionbus/ionbus_utils/tree/main?tab=readme-ov-file#ionbus_utils).
 
 ## Requirements
 
