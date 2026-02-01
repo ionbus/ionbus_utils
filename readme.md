@@ -4,6 +4,8 @@ A collection of Python utilities for common development tasks including
 logging, cryptography, file operations, date/time handling, caching,
 pandas operations, subprocess management, and configuration management.
 
+This is designed so that it can be installed as a package via pip, or checked out as a git submodule (the latter being very useful for adding/testing new functionality).
+
 <!-- TOC start (generated with https://bitdowntoc.derlin.ch/) -->
 
 - [Installation](#installation)
@@ -12,28 +14,12 @@ pandas operations, subprocess management, and configuration management.
 - [Requirements](#requirements)
 - [License](#license)
 - [Module Details](#module-details)
-   * [base_utils](#base_utils)
-   * [enumerate](#enumerate)
-   * [group_utils](#group_utils)
-   * [exceptions](#exceptions)
-   * [regex_utils](#regex_utils)
-   * [date_utils](#date_utils)
-   * [general](#general)
-   * [general_classes](#general_classes)
-   * [git_utils](#git_utils)
-
 <!-- TOC end -->
 
 ## Installation
 
 ```bash
 pip install ionbus-utils
-```
-
-Or install from source:
-
-```bash
-pip install -e .
 ```
 
 ## Modules
