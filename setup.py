@@ -90,6 +90,7 @@ setup(
     name="ionbus-utils",
     packages=packages,
     package_dir=package_dirs,
+    python_requires=">=3.9",
     install_requires=requirements,
     extras_require=extra_reqs,
     long_description=long_description,
