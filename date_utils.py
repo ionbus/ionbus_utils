@@ -93,3 +93,135 @@ def ensure_date_is_iso_string(
     if not the_date:
         return None
     return pd.Timestamp(the_date).date().isoformat()
+
+
+# Valid date partition granularities for Hive-style partitioning
+DATE_PARTITION_GRANULARITIES = ("day", "week", "month", "quarter", "year")
+
+
+def date_partition_value(date: dt.date, granularity: str) -> str:
+    """
+    Generate a Hive-style partition value string for a date.
+
+    Creates partition values suitable for Hive-partitioned directories
+    (e.g., "month=M2024-01/").
+
+    Args:
+        date: The date to generate a partition value for.
+        granularity: One of "day", "week", "month", "quarter", "year".
+
+    Returns:
+        Partition value string formatted as:
+        - day: "2024-01-15" (ISO format)
+        - week: "W2024-03" (ISO week number)
+        - month: "M2024-01"
+        - quarter: "Q2024-1"
+        - year: "Y2024"
+
+    Raises:
+        ValueError: If granularity is not valid.
+
+    Examples:
+        >>> date_partition_value(dt.date(2024, 1, 15), "month")
+        'M2024-01'
+        >>> date_partition_value(dt.date(2024, 1, 15), "week")
+        'W2024-03'
+    """
+    if granularity not in DATE_PARTITION_GRANULARITIES:
+        raise ValueError(
+            f"Invalid granularity '{granularity}'. "
+            f"Must be one of: {DATE_PARTITION_GRANULARITIES}"
+        )
+
+    if granularity == "day":
+        return date.isoformat()
+
+    if granularity == "week":
+        iso_year, iso_week, _ = date.isocalendar()
+        return f"W{iso_year}-{iso_week:02d}"
+
+    if granularity == "month":
+        return f"M{date.year}-{date.month:02d}"
+
+    if granularity == "quarter":
+        quarter = (date.month - 1) // 3 + 1
+        return f"Q{date.year}-{quarter}"
+
+    if granularity == "year":
+        return f"Y{date.year}"
+
+    # Should not reach here due to earlier validation
+    raise ValueError(f"Unhandled granularity: {granularity}")
+
+
+def date_partition_range(
+    partition_value: str, granularity: str
+) -> tuple[dt.date, dt.date]:
+    """
+    Get the date range covered by a partition value.
+
+    Given a partition value string (e.g., "M2024-01"), returns the
+    start and end dates of that partition period.
+
+    Args:
+        partition_value: Partition value string (e.g., "Y2024", "M2024-01").
+        granularity: One of "day", "week", "month", "quarter", "year".
+
+    Returns:
+        Tuple of (start_date, end_date) for the partition period.
+
+    Raises:
+        ValueError: If partition_value format doesn't match granularity.
+
+    Examples:
+        >>> date_partition_range("M2024-01", "month")
+        (datetime.date(2024, 1, 1), datetime.date(2024, 1, 31))
+        >>> date_partition_range("Y2024", "year")
+        (datetime.date(2024, 1, 1), datetime.date(2024, 12, 31))
+    """
+    if granularity == "day":
+        date = dt.date.fromisoformat(partition_value)
+        return (date, date)
+
+    if granularity == "week":
+        # Format: W2024-03
+        year = int(partition_value[1:5])
+        week = int(partition_value[6:])
+        # ISO week: Monday is day 1
+        jan4 = dt.date(year, 1, 4)
+        start_of_year = jan4 - dt.timedelta(days=jan4.weekday())
+        week_start = start_of_year + dt.timedelta(weeks=week - 1)
+        week_end = week_start + dt.timedelta(days=6)
+        return (week_start, week_end)
+
+    if granularity == "month":
+        # Format: M2024-01
+        year = int(partition_value[1:5])
+        month = int(partition_value[6:])
+        start = dt.date(year, month, 1)
+        # End of month
+        if month == 12:
+            end = dt.date(year + 1, 1, 1) - dt.timedelta(days=1)
+        else:
+            end = dt.date(year, month + 1, 1) - dt.timedelta(days=1)
+        return (start, end)
+
+    if granularity == "quarter":
+        # Format: Q2024-1
+        year = int(partition_value[1:5])
+        quarter = int(partition_value[6:])
+        start_month = (quarter - 1) * 3 + 1
+        end_month = quarter * 3
+        start = dt.date(year, start_month, 1)
+        if end_month == 12:
+            end = dt.date(year + 1, 1, 1) - dt.timedelta(days=1)
+        else:
+            end = dt.date(year, end_month + 1, 1) - dt.timedelta(days=1)
+        return (start, end)
+
+    if granularity == "year":
+        # Format: Y2024
+        year = int(partition_value[1:])
+        return (dt.date(year, 1, 1), dt.date(year, 12, 31))
+
+    raise ValueError(f"Invalid granularity: {granularity}")
