@@ -65,6 +65,12 @@ else
     fi
 fi
 
+# Force win-64 solver on Windows ARM (conda-forge lacks win-arm64 python).
+# Harmless on other platforms that already have native python builds.
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) export CONDA_SUBDIR="win-64" ;;
+esac
+
 echo "=== Resolving conda output path ==="
 CONDA_PKG=$(conda build conda-recipe -c conda-forge --output)
 echo "Will build: $CONDA_PKG"

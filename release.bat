@@ -70,6 +70,10 @@ if "%CONDA_ONLY%"=="1" (
     )
 )
 
+REM Force win-64 solver on Windows ARM (conda-forge lacks win-arm64 python).
+REM Harmless on native x64.
+set "CONDA_SUBDIR=win-64"
+
 echo === Resolving conda output path ===
 for /f "delims=" %%i in ('conda build conda-recipe -c conda-forge --output') do set "CONDA_PKG=%%i"
 echo Will build: !CONDA_PKG!
