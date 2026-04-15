@@ -126,6 +126,32 @@ def get_file_hash(
     return hex_digest
 
 
+def format_size(size_bytes: int) -> str:
+    """
+    Format a byte count as a human-readable string.
+
+    Args:
+        size_bytes: Number of bytes.
+
+    Returns:
+        Human-readable string (e.g., "1.5 MB", "256 KB").
+
+    Examples:
+        >>> format_size(1024)
+        '1.0 KB'
+        >>> format_size(1536000)
+        '1.5 MB'
+    """
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+
 def get_logfile_name(
     prefix: str = "process",
     log_dir: str = ".",

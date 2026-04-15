@@ -5,9 +5,11 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import gzip
+import importlib.util
 import json
 import os
 import re
+import sys
 from collections import namedtuple
 from collections.abc import KeysView
 from contextlib import contextmanager
@@ -438,10 +440,29 @@ def timestamped_id(
     prefix: str | None = "",
     base: int = 62,
     use_seconds: bool = False,
+    min_length: int = 0,
 ) -> str:
-    """Returns timestamped ID.  This ID is NOT guaranteed to be unique.
-    Uses microseconds since epoch by default, will use seconds since epoch when
-    `use_seconds` is provided."""
+    """
+    Returns timestamped ID. This ID is NOT guaranteed to be unique.
+
+    Uses microseconds since epoch by default, will use seconds since epoch
+    when `use_seconds` is True.
+
+    Args:
+        prefix: Optional prefix to prepend (will be followed by underscore).
+        base: Numeric base for encoding (default 62).
+        use_seconds: If True, use seconds instead of microseconds.
+        min_length: Minimum length for the encoded portion (excluding prefix).
+            If the encoded string is shorter, it will be padded with leading '0's.
+
+    Returns:
+        Timestamped ID string, optionally with prefix.
+
+    Examples:
+        >>> timestamped_id(use_seconds=True)  # e.g., '1Gz5hK'
+        >>> timestamped_id(use_seconds=True, min_length=6)  # e.g., '1Gz5hK' (padded if needed)
+        >>> timestamped_id(prefix="snap", use_seconds=True)  # e.g., 'snap_1Gz5hK'
+    """
     if prefix:
         prefix = f"{prefix}_"
     else:
@@ -451,7 +472,13 @@ def timestamped_id(
         if use_seconds
         else int(dt.datetime.now().timestamp() * 1e6 + 0.5)
     )
-    return f"{prefix}{int_to_base(number, base=base)}"
+    encoded = int_to_base(number, base=base)
+
+    # Pad to min_length if needed
+    if min_length > 0 and len(encoded) < min_length:
+        encoded = "0" * (min_length - len(encoded)) + encoded
+
+    return f"{prefix}{encoded}"
 
 
 def setup_requests_ca_bundle(ca_cert: str | None = None) -> None:
@@ -481,3 +508,69 @@ def get_https_cert_filename() -> str:
             logger.info(f"Using certificate file {filename}")
             return filename
     raise RuntimeError("No certificate PEM file found")
+
+
+def load_class_from_file(
+    file_path: str | Path,
+    class_name: str,
+    base_class: type | None = None,
+) -> type:
+    """
+    Dynamically load a class from a Python file.
+
+    Useful for plugin systems where classes are defined in external files
+    and loaded at runtime based on configuration.
+
+    Args:
+        file_path: Path to the Python file containing the class.
+        class_name: Name of the class to load from the file.
+        base_class: Optional base class that the loaded class must inherit from.
+            If provided, raises TypeError if the class is not a subclass.
+
+    Returns:
+        The loaded class.
+
+    Raises:
+        FileNotFoundError: If the Python file does not exist.
+        ImportError: If the module cannot be loaded.
+        AttributeError: If the class is not found in the module.
+        TypeError: If base_class is specified and the class is not a subclass.
+
+    Example:
+        >>> # Load a DataSource subclass from a file
+        >>> cls = load_class_from_file(
+        ...     "plugins/my_source.py",
+        ...     "MyDataSource",
+        ...     base_class=DataSource,
+        ... )
+        >>> source = cls(dataset, **kwargs)
+    """
+    file_path = Path(file_path)
+
+    if not file_path.exists():
+        raise FileNotFoundError(f"Python file not found: {file_path}")
+
+    # Create a unique module name based on file path
+    module_name = f"_ionbus_dynamic_{file_path.stem}_{id(file_path)}"
+
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load module from {file_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+
+    cls = getattr(module, class_name, None)
+    if cls is None:
+        raise AttributeError(f"Class '{class_name}' not found in {file_path}")
+
+    if not isinstance(cls, type):
+        raise TypeError(f"'{class_name}' is not a class")
+
+    if base_class is not None and not issubclass(cls, base_class):
+        raise TypeError(
+            f"'{class_name}' must be a subclass of {base_class.__name__}"
+        )
+
+    return cls
