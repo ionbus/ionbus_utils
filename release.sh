@@ -2,32 +2,70 @@
 # Build and publish ionbus-utils to PyPI and Anaconda.
 # Prereqs: activate an env that has: build, twine, conda-build, anaconda-client.
 # Auth: ~/.pypirc for PyPI, `anaconda login` for Anaconda (or ANACONDA_API_TOKEN).
-#
-# Usage:
-#   ./release.sh               # requires HEAD to already be tagged
-#   ./release.sh --tag         # run auto_tag to create+push a new tag first
-#   ./release.sh --test        # upload pip wheel to TestPyPI instead of PyPI
-#   ./release.sh --conda-only  # skip pip build/upload; only build + upload conda
-#   ./release.sh --skip-pip    # build pip wheel but don't upload (still do conda)
-#   flags can be combined: ./release.sh --tag --conda-only
 
 set -euo pipefail
 
 ANACONDA_USER="ionbus"
 
+show_help() {
+    cat <<'EOF'
+Usage: ./release.sh [options]
+
+Builds and publishes ionbus-utils to PyPI and Anaconda.
+
+By default: requires HEAD to be tagged, then builds+uploads BOTH the pip
+wheel (to PyPI) and the conda package (to Anaconda under "ionbus").
+
+Options:
+  -h, --help      Show this help and exit.
+  --tag           Before building, run auto_tag to create and push a new
+                  tag from commit-message hashtags (#Major/#Minor/#Inc/
+                  #Fix/#RC/#Prod).
+  --test          Upload the pip wheel to TestPyPI instead of PyPI.
+                  Ignored if --pip-only is not used and the conda step
+                  still runs normally. No effect with --conda-only.
+  --pip-only      Build and upload ONLY the pip wheel. Skip the conda
+                  build and Anaconda upload entirely.
+  --conda-only    Build and upload ONLY the conda package. Skip the pip
+                  wheel build and PyPI upload entirely.
+  --skip-pip      Build the pip wheel but do not upload it. The conda
+                  build and upload still run. Useful for verifying the
+                  wheel builds cleanly.
+
+Flags can be combined, e.g. --tag --conda-only.
+Mutually exclusive: --pip-only and --conda-only.
+
+Examples:
+  ./release.sh                       # full release (pip + conda)
+  ./release.sh --tag                 # auto-create tag, then full release
+  ./release.sh --pip-only            # pip only, to PyPI
+  ./release.sh --pip-only --test     # pip only, to TestPyPI
+  ./release.sh --conda-only          # conda only
+  ./release.sh --skip-pip            # build wheel (no upload), push conda
+EOF
+}
+
 do_tag=0
 test_pypi=0
 conda_only=0
+pip_only=0
 skip_pip_upload=0
 for arg in "$@"; do
     case "$arg" in
+        -h|--help)    show_help; exit 0 ;;
         --tag)        do_tag=1 ;;
         --test)       test_pypi=1 ;;
         --conda-only) conda_only=1 ;;
+        --pip-only)   pip_only=1 ;;
         --skip-pip)   skip_pip_upload=1 ;;
-        *) echo "Unknown arg: $arg" >&2; exit 2 ;;
+        *) echo "Unknown arg: $arg" >&2; echo "Run with --help for usage." >&2; exit 2 ;;
     esac
 done
+
+if [ "$pip_only" -eq 1 ] && [ "$conda_only" -eq 1 ]; then
+    echo "ERROR: --pip-only and --conda-only are mutually exclusive." >&2
+    exit 2
+fi
 
 cd "$(dirname "$0")"
 
@@ -63,6 +101,12 @@ else
         echo "=== Uploading to PyPI ==="
         python -m twine upload dist/*
     fi
+fi
+
+if [ "$pip_only" -eq 1 ]; then
+    echo "=== Skipping conda build+upload (--pip-only) ==="
+    echo "=== Done: released $TAG (pip only) ==="
+    exit 0
 fi
 
 # Force win-64 solver on Windows ARM (conda-forge lacks win-arm64 python).

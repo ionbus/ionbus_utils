@@ -2,14 +2,7 @@
 REM Build and publish ionbus-utils to PyPI and Anaconda.
 REM Prereqs: activate an env that has: build, twine, conda-build, anaconda-client.
 REM Auth: %USERPROFILE%\.pypirc for PyPI, `anaconda login` for Anaconda.
-REM
-REM Usage:
-REM   release.bat                requires HEAD to already be tagged
-REM   release.bat --tag          run auto_tag to create+push a new tag first
-REM   release.bat --test         upload pip wheel to TestPyPI instead of PyPI
-REM   release.bat --conda-only   skip pip build/upload; only build + upload conda
-REM   release.bat --skip-pip     build pip wheel but don't upload (still do conda)
-REM   flags can be combined: release.bat --tag --conda-only
+REM Run `release.bat --help` for full option list.
 
 setlocal enabledelayedexpansion
 
@@ -17,17 +10,28 @@ set "ANACONDA_USER=ionbus"
 set "DO_TAG=0"
 set "TEST_PYPI=0"
 set "CONDA_ONLY=0"
+set "PIP_ONLY=0"
 set "SKIP_PIP=0"
 
 :parse_args
 if "%~1"=="" goto after_args
+if /i "%~1"=="-h"            goto :show_help
+if /i "%~1"=="--help"        goto :show_help
+if /i "%~1"=="/?"            goto :show_help
 if /i "%~1"=="--tag"         (set "DO_TAG=1" & shift & goto parse_args)
 if /i "%~1"=="--test"        (set "TEST_PYPI=1" & shift & goto parse_args)
 if /i "%~1"=="--conda-only"  (set "CONDA_ONLY=1" & shift & goto parse_args)
+if /i "%~1"=="--pip-only"    (set "PIP_ONLY=1" & shift & goto parse_args)
 if /i "%~1"=="--skip-pip"    (set "SKIP_PIP=1" & shift & goto parse_args)
 echo Unknown arg: %~1 1>&2
+echo Run with --help for usage. 1>&2
 exit /b 2
 :after_args
+
+if "%PIP_ONLY%"=="1" if "%CONDA_ONLY%"=="1" (
+    echo ERROR: --pip-only and --conda-only are mutually exclusive. 1>&2
+    exit /b 2
+)
 
 cd /d "%~dp0"
 
@@ -70,6 +74,13 @@ if "%CONDA_ONLY%"=="1" (
     )
 )
 
+if "%PIP_ONLY%"=="1" (
+    echo === Skipping conda build+upload ^(--pip-only^) ===
+    echo === Done: released !TAG! ^(pip only^) ===
+    endlocal
+    exit /b 0
+)
+
 REM Force win-64 solver on Windows ARM (conda-forge lacks win-arm64 python).
 REM Harmless on native x64.
 set "CONDA_SUBDIR=win-64"
@@ -101,6 +112,43 @@ echo === Uploading to Anaconda (user: %ANACONDA_USER%) ===
 if errorlevel 1 goto :fail
 
 echo === Done: released !TAG! ===
+endlocal
+exit /b 0
+
+:show_help
+echo.
+echo Usage: release.bat [options]
+echo.
+echo Builds and publishes ionbus-utils to PyPI and Anaconda.
+echo.
+echo By default: requires HEAD to be tagged, then builds+uploads BOTH the
+echo pip wheel (to PyPI) and the conda package (to Anaconda user "ionbus").
+echo.
+echo Options:
+echo   -h, --help      Show this help and exit.
+echo   --tag           Before building, run auto_tag to create and push a
+echo                   new tag from commit-message hashtags (#Major/
+echo                   #Minor/#Inc/#Fix/#RC/#Prod).
+echo   --test          Upload the pip wheel to TestPyPI instead of PyPI.
+echo                   No effect with --conda-only.
+echo   --pip-only      Build and upload ONLY the pip wheel. Skip the
+echo                   conda build and Anaconda upload entirely.
+echo   --conda-only    Build and upload ONLY the conda package. Skip the
+echo                   pip wheel build and PyPI upload entirely.
+echo   --skip-pip      Build the pip wheel but do not upload it. The
+echo                   conda build and upload still run.
+echo.
+echo Flags can be combined, e.g. --tag --conda-only.
+echo Mutually exclusive: --pip-only and --conda-only.
+echo.
+echo Examples:
+echo   release.bat                       full release (pip + conda)
+echo   release.bat --tag                 auto-create tag, then full release
+echo   release.bat --pip-only            pip only, to PyPI
+echo   release.bat --pip-only --test     pip only, to TestPyPI
+echo   release.bat --conda-only          conda only
+echo   release.bat --skip-pip            build wheel (no upload), push conda
+echo.
 endlocal
 exit /b 0
 
