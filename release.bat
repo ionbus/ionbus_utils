@@ -82,8 +82,22 @@ echo === Building conda package ===
 conda build conda-recipe -c conda-forge
 if errorlevel 1 goto :fail
 
+REM Locate anaconda-client. Not on PATH when running from a non-base env,
+REM so fall back to the miniforge install location.
+set "ANACONDA_EXE=anaconda"
+where anaconda >nul 2>&1
+if errorlevel 1 (
+    if exist "%USERPROFILE%\miniforge3\Scripts\anaconda.exe" (
+        set "ANACONDA_EXE=%USERPROFILE%\miniforge3\Scripts\anaconda.exe"
+    ) else (
+        echo ERROR: anaconda-client not found. Install with: 1>&2
+        echo   conda install -n base -c conda-forge anaconda-client -y 1>&2
+        goto :fail
+    )
+)
+
 echo === Uploading to Anaconda (user: %ANACONDA_USER%) ===
-anaconda upload --user %ANACONDA_USER% "!CONDA_PKG!"
+"!ANACONDA_EXE!" upload --user %ANACONDA_USER% "!CONDA_PKG!"
 if errorlevel 1 goto :fail
 
 echo === Done: released !TAG! ===
