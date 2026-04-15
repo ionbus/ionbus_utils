@@ -4,10 +4,12 @@
 # Auth: ~/.pypirc for PyPI, `anaconda login` for Anaconda (or ANACONDA_API_TOKEN).
 #
 # Usage:
-#   ./release.sh            # requires HEAD to already be tagged
-#   ./release.sh --tag      # run auto_tag to create+push a new tag first
-#   ./release.sh --test     # upload to TestPyPI instead of PyPI
-#   flags can be combined: ./release.sh --tag --test
+#   ./release.sh               # requires HEAD to already be tagged
+#   ./release.sh --tag         # run auto_tag to create+push a new tag first
+#   ./release.sh --test        # upload pip wheel to TestPyPI instead of PyPI
+#   ./release.sh --conda-only  # skip pip build/upload; only build + upload conda
+#   ./release.sh --skip-pip    # build pip wheel but don't upload (still do conda)
+#   flags can be combined: ./release.sh --tag --conda-only
 
 set -euo pipefail
 
@@ -15,10 +17,14 @@ ANACONDA_USER="ionbus"
 
 do_tag=0
 test_pypi=0
+conda_only=0
+skip_pip_upload=0
 for arg in "$@"; do
     case "$arg" in
-        --tag)  do_tag=1 ;;
-        --test) test_pypi=1 ;;
+        --tag)        do_tag=1 ;;
+        --test)       test_pypi=1 ;;
+        --conda-only) conda_only=1 ;;
+        --skip-pip)   skip_pip_upload=1 ;;
         *) echo "Unknown arg: $arg" >&2; exit 2 ;;
     esac
 done
@@ -42,14 +48,21 @@ echo "=== Cleaning previous build artifacts ==="
 rm -rf dist build
 rm -rf ./*.egg-info
 
-echo "=== Building pip wheel ==="
-python -m build --wheel
-
-echo "=== Uploading to $( [ "$test_pypi" -eq 1 ] && echo TestPyPI || echo PyPI ) ==="
-if [ "$test_pypi" -eq 1 ]; then
-    python -m twine upload --repository testpypi dist/*
+if [ "$conda_only" -eq 1 ]; then
+    echo "=== Skipping pip build+upload (--conda-only) ==="
 else
-    python -m twine upload dist/*
+    echo "=== Building pip wheel ==="
+    python -m build --wheel
+
+    if [ "$skip_pip_upload" -eq 1 ]; then
+        echo "=== Skipping pip upload (--skip-pip) ==="
+    elif [ "$test_pypi" -eq 1 ]; then
+        echo "=== Uploading to TestPyPI ==="
+        python -m twine upload --repository testpypi dist/*
+    else
+        echo "=== Uploading to PyPI ==="
+        python -m twine upload dist/*
+    fi
 fi
 
 echo "=== Resolving conda output path ==="
