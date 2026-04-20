@@ -12,6 +12,7 @@ set "TEST_PYPI=0"
 set "CONDA_ONLY=0"
 set "PIP_ONLY=0"
 set "SKIP_PIP=0"
+set "ANY_BRANCH=0"
 
 :parse_args
 if "%~1"=="" goto after_args
@@ -23,6 +24,7 @@ if /i "%~1"=="--test"        (set "TEST_PYPI=1" & shift & goto parse_args)
 if /i "%~1"=="--conda-only"  (set "CONDA_ONLY=1" & shift & goto parse_args)
 if /i "%~1"=="--pip-only"    (set "PIP_ONLY=1" & shift & goto parse_args)
 if /i "%~1"=="--skip-pip"    (set "SKIP_PIP=1" & shift & goto parse_args)
+if /i "%~1"=="--any-branch"  (set "ANY_BRANCH=1" & shift & goto parse_args)
 echo Unknown arg: %~1 1>&2
 echo Run with --help for usage. 1>&2
 exit /b 2
@@ -34,6 +36,14 @@ if "%PIP_ONLY%"=="1" if "%CONDA_ONLY%"=="1" (
 )
 
 cd /d "%~dp0"
+
+echo === Verifying branch ===
+for /f "delims=" %%b in ('git branch --show-current') do set "CURRENT_BRANCH=%%b"
+if not "%ANY_BRANCH%"=="1" if not "!CURRENT_BRANCH!"=="main" (
+    echo ERROR: on branch '!CURRENT_BRANCH!', not 'main'. Use --any-branch to override. 1>&2
+    exit /b 1
+)
+echo Branch: !CURRENT_BRANCH!
 
 if "%DO_TAG%"=="1" (
     echo === Running auto_tag ===
@@ -137,6 +147,7 @@ echo   --conda-only    Build and upload ONLY the conda package. Skip the
 echo                   pip wheel build and PyPI upload entirely.
 echo   --skip-pip      Build the pip wheel but do not upload it. The
 echo                   conda build and upload still run.
+echo   --any-branch    Skip the requirement to be on the main branch.
 echo.
 echo Flags can be combined, e.g. --tag --conda-only.
 echo Mutually exclusive: --pip-only and --conda-only.
@@ -148,6 +159,7 @@ echo   release.bat --pip-only            pip only, to PyPI
 echo   release.bat --pip-only --test     pip only, to TestPyPI
 echo   release.bat --conda-only          conda only
 echo   release.bat --skip-pip            build wheel (no upload), push conda
+echo   release.bat --any-branch          release from a non-main branch
 echo.
 endlocal
 exit /b 0

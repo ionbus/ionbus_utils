@@ -31,6 +31,7 @@ Options:
   --skip-pip      Build the pip wheel but do not upload it. The conda
                   build and upload still run. Useful for verifying the
                   wheel builds cleanly.
+  --any-branch    Skip the requirement to be on the main branch.
 
 Flags can be combined, e.g. --tag --conda-only.
 Mutually exclusive: --pip-only and --conda-only.
@@ -42,6 +43,7 @@ Examples:
   ./release.sh --pip-only --test     # pip only, to TestPyPI
   ./release.sh --conda-only          # conda only
   ./release.sh --skip-pip            # build wheel (no upload), push conda
+  ./release.sh --any-branch          # release from a non-main branch
 EOF
 }
 
@@ -50,6 +52,7 @@ test_pypi=0
 conda_only=0
 pip_only=0
 skip_pip_upload=0
+any_branch=0
 for arg in "$@"; do
     case "$arg" in
         -h|--help)    show_help; exit 0 ;;
@@ -58,6 +61,7 @@ for arg in "$@"; do
         --conda-only) conda_only=1 ;;
         --pip-only)   pip_only=1 ;;
         --skip-pip)   skip_pip_upload=1 ;;
+        --any-branch) any_branch=1 ;;
         *) echo "Unknown arg: $arg" >&2; echo "Run with --help for usage." >&2; exit 2 ;;
     esac
 done
@@ -68,6 +72,14 @@ if [ "$pip_only" -eq 1 ] && [ "$conda_only" -eq 1 ]; then
 fi
 
 cd "$(dirname "$0")"
+
+echo "=== Verifying branch ==="
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$any_branch" -eq 0 ] && [ "$CURRENT_BRANCH" != "main" ]; then
+    echo "ERROR: on branch '$CURRENT_BRANCH', not 'main'. Use --any-branch to override." >&2
+    exit 1
+fi
+echo "Branch: $CURRENT_BRANCH"
 
 if [ "$do_tag" -eq 1 ]; then
     echo "=== Running auto_tag ==="
