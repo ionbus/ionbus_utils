@@ -86,11 +86,14 @@ from ionbus_utils.base_utils import int_to_base, base_to_int, uuid_baseN
 from ionbus_utils.base_utils import is_windows, is_mac, is_wsl
 
 # Convert integers to compact string representations
-encoded = int_to_base(12345, base=62)  # "3d7"
-decoded = base_to_int("3d7", base=62)  # 12345
+encoded = int_to_base(12345, base=62)           # "3d7"
+encoded = int_to_base(12345, base=62, minimum_width=6)        # "0003d7"
+encoded = int_to_base(12345, base=62, minimum_width=6, pad_char=" ")  # "  3d7"
+decoded = base_to_int("  3d7  ", base=62)       # 12345 (whitespace stripped)
 
-# Generate short unique identifiers
-unique_id = uuid_baseN(base=62)  # e.g., "5KmV8f1gH2jN"
+# Generate unique identifiers — always 22 chars wide (base-62 default)
+unique_id = uuid_baseN()           # e.g., "005KmV8f1gH2jN3xQpRwTy"
+unique_id = uuid_baseN(minimum_width=25)  # padded to 25 chars
 
 # Platform detection
 if is_windows():
@@ -100,9 +103,9 @@ elif is_wsl():
 ```
 
 **Functions:**
-- `int_to_base(num, base)` - Convert integer to string in base 2-64
-- `base_to_int(string, base)` - Convert string back to integer
-- `uuid_baseN(base)` - Generate UUID encoded in specified base
+- `int_to_base(num, base, minimum_width, pad_char)` - Convert integer to string in base 2-64; optionally left-pad to `minimum_width` with `pad_char` (default `"0"`)
+- `base_to_int(string, base)` - Convert string back to integer; strips surrounding whitespace
+- `uuid_baseN(base, minimum_width)` - Generate UUID encoded in specified base, padded to `minimum_width` (default 22)
 - `is_windows()`, `is_mac()`, `is_wsl()` - Platform detection
 
 ### enumerate

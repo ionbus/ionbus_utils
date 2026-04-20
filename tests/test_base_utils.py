@@ -99,6 +99,19 @@ class TestIntToBase:
         assert int_to_base(0, base=10) == "0"
         assert int_to_base(0, base=62) == "0"
 
+    def test_minimum_width_zero_pad(self):
+        """Test that minimum_width pads with zeros on the left."""
+        assert int_to_base(5, base=10, minimum_width=4) == "0005"
+        assert int_to_base(5, base=10, minimum_width=1) == "5"
+
+    def test_minimum_width_space_pad(self):
+        """Test that minimum_width pads with a custom pad_char."""
+        assert int_to_base(5, base=10, minimum_width=4, pad_char=" ") == "   5"
+
+    def test_minimum_width_none(self):
+        """Test that minimum_width=None (default) applies no padding."""
+        assert int_to_base(5, base=10) == "5"
+
 
 class TestBaseToInt:
     """Tests for base_to_int function."""
@@ -107,6 +120,10 @@ class TestBaseToInt:
         """Test conversion from base 10."""
         assert base_to_int("123", base=10) == 123
         assert base_to_int("0", base=10) == 0
+
+    def test_strips_whitespace(self):
+        """Test that surrounding whitespace is stripped."""
+        assert base_to_int("  123  ", base=10) == 123
 
     def test_base2(self):
         """Test conversion from base 2."""
@@ -153,8 +170,7 @@ class TestUuidBaseN:
         """Test UUID generation in base 62."""
         result = uuid_baseN(base=62)
         assert isinstance(result, str)
-        assert len(result) > 0
-        # Should be alphanumeric for base 62
+        assert len(result) == 22
         assert result.isalnum()
 
     def test_uuid_uniqueness(self):

@@ -182,9 +182,10 @@ uid = timestamped_unique_id("job")   # "job_3kF9aX_7xQ2bR..." — unique across 
 # timestamp-only (not unique, but sortable and compact)
 tid = timestamped_id("run")          # "run_3kF9aX" — base62 microseconds
 
-# just a short uuid (22 chars vs 36 for standard uuid4)
-short = uuid_baseN()                 # "5FbV3kQx9mR2wYp7nJ1tAa"
+# just a short uuid — always 22 chars (zero-padded), vs 36 for standard uuid4
+short = uuid_baseN()                 # "005FbV3kQx9mR2wYp7nJ1t"
 short32 = uuid_baseN(base=32)        # longer but case-insensitive
+short25 = uuid_baseN(minimum_width=25)  # padded to 25 chars
 ```
 
 `timestamped_unique_id` combines a base62 microsecond timestamp with a
@@ -197,8 +198,11 @@ ids, cache keys, and filenames.
 ```python
 from ionbus_utils.base_utils import int_to_base, base_to_int, is_windows
 
-encoded = int_to_base(99999, 62)     # compact base62 string
-decoded = base_to_int(encoded, 62)   # back to 99999
+encoded = int_to_base(99999, 62)                        # compact base62 string
+padded  = int_to_base(99999, 62, minimum_width=8)       # zero-padded to 8 chars
+padded  = int_to_base(99999, 62, minimum_width=8, pad_char=" ")  # space-padded
+decoded = base_to_int(encoded, 62)                      # back to 99999
+decoded = base_to_int("  abc  ", 62)                    # whitespace is stripped
 ```
 
 ### enumerate — flexible enums

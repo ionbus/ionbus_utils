@@ -48,7 +48,12 @@ def is_mac() -> bool:
     return sys.platform == "darwin"
 
 
-def int_to_base(number: int, base: int = 62) -> str:
+def int_to_base(
+    number: int,
+    base: int = 62,
+    minimum_width: int | None = None,
+    pad_char: str = "0",
+) -> str:
     """Converts non-negative integer to string requested base.
     NOTE: bases bigger than 62 generate strings that are not URL safe."""
     if number < 0:
@@ -64,7 +69,10 @@ def int_to_base(number: int, base: int = 62) -> str:
         ret_str += convert_numbers_list[digit]
         if not number:
             break
-    return ret_str[::-1]
+    ret_str = ret_str[::-1]
+    if minimum_width:
+        ret_str = ret_str.rjust(minimum_width, pad_char)
+    return ret_str
 
 
 def base_to_int(number_string: str, base: int = 62) -> int:
@@ -75,13 +83,13 @@ def base_to_int(number_string: str, base: int = 62) -> int:
     convert_numbers_dict = _convert_numbers_dict_62
     if base > 62:  # noqa: PLR2004
         convert_numbers_dict = _convert_numbers_dict_64
-    for char in number_string:
+    for char in number_string.strip():
         ret_int *= base
         ret_int += convert_numbers_dict[char]
     return ret_int
 
 
-def uuid_baseN(base: int = 62) -> str:
+def uuid_baseN(base: int = 62, minimum_width: int = 22) -> str:
     """Returns a UUID encoded in the specified base (default is 62).
     This is (almost) guaranteed to be unique (1 in 2**122)."""
-    return int_to_base(uuid.uuid4().int, base=base)  # type: ignore
+    return int_to_base(uuid.uuid4().int, base=base, minimum_width=minimum_width)  # type: ignore
