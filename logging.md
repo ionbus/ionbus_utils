@@ -8,6 +8,7 @@
     * [Helper Functions](#helper-functions)
     * [Logging directly to a file](#logging-directly-to-a-file)
     * [Changing information that is logged](#changing-information-that-is-logged)
+        + [Multiprocessing setup](#multiprocessing-setup)
     * [Loguru Integration](#loguru-integration)
     * [Logging Levels](#logging-levels)
     * [`warn_once` Function](#warn_once-function)
@@ -113,6 +114,61 @@ which has output like:
 2025-10-13 15:44:15.610 INFO      12116 SpawnPoolWorker-1    [test_logging        :worker_process       (  84)] Process 0 - Message 1
 ```
 
+
+#### Multiprocessing setup
+
+When using multiprocessing, configure the logger once in the parent process and
+once in each worker process. The easiest way to do this is with the pool
+initializer.
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+from ionbus_utils.logging_utils import logger, setup_logger_format
+
+
+def worker_init() -> None:
+    setup_logger_format(
+        multiprocessing_info=True,
+        update_format=True,
+    )
+
+
+def worker(job_id: int) -> int:
+    logger.info("worker started job %s", job_id)
+    return job_id
+
+
+def main() -> None:
+    setup_logger_format(
+        multiprocessing_info=True,
+        update_format=True,
+    )
+    logger.info("parent starting workers")
+
+    with ProcessPoolExecutor(
+        max_workers=4,
+        initializer=worker_init,
+    ) as pool:
+        results = list(pool.map(worker, range(10)))
+
+    logger.info("parent finished workers: %s", results)
+```
+
+`update_format=True` is important here. `logging_utils` creates the default
+`logger` when the module is imported, so calling
+`setup_logger_format(multiprocessing_info=True)` later may return the existing
+logger without rebuilding its formatter. Passing `update_format=True` forces the
+formatter to include process ID and process name.
+
+This setup does not create separate loggers for each process. It uses the same
+default `logger`, with log output including process information so parent and
+worker messages can be distinguished.
+
+Threading is simpler because threads share the same process and logger state.
+You do not need to re-run logger setup inside each thread. If you want thread
+IDs in the log output, call `setup_logger_format(thread_info=True,
+update_format=True)` once before starting the threads.
 
 ### Loguru Integration
 

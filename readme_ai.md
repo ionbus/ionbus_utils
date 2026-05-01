@@ -77,7 +77,18 @@ key features:
   bitmask to control output without if-statements everywhere.
 - **file logging** — `add_log_file(filename)` attaches a file handler.
   respects the `IBU_LOG_DIR` environment variable.
+- **multiprocessing logging** — use the default `logger`, but call
+  `setup_logger_format(multiprocessing_info=True, update_format=True)` in the
+  parent process and again in each worker process, usually through the process
+  pool initializer. `multiprocessing_info=True` alone is not enough after the
+  logger has already been imported.
+- **thread logging** — threads share logger state; call
+  `setup_logger_format(thread_info=True, update_format=True)` once before
+  starting threads if thread IDs are needed. do not re-run setup inside each
+  thread.
 - **loguru interop** — if `loguru` is installed it is used automatically.
+
+for the full multiprocessing example, see [`logging.md`](logging.md).
 
 ### cache_utils — in-memory + file caching
 
