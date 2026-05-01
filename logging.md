@@ -9,7 +9,6 @@
     * [Logging directly to a file](#logging-directly-to-a-file)
     * [Changing information that is logged](#changing-information-that-is-logged)
         + [Multiprocessing setup](#multiprocessing-setup)
-    * [Loguru Integration](#loguru-integration)
     * [Logging Levels](#logging-levels)
     * [`warn_once` Function](#warn_once-function)
     * [`log_if` Functions (Advanced approach)](#log_if-functions-advanced-approach)
@@ -170,16 +169,6 @@ You do not need to re-run logger setup inside each thread. If you want thread
 IDs in the log output, call `setup_logger_format(thread_info=True,
 update_format=True)` once before starting the threads.
 
-### Loguru Integration
-
-By default, the `logging_utils` sets up everything using the standard python logger.  If it is running in an environment where the optional `loguru` package is installed, it will use that logger by default.
-
-```
-2024-07-17 16:27:13.882 | WARNING  | __main__:test_log_if:48 - Some message here
-```
-
-Console messages using loguru are also colored to make it easier to distinguish between messages at different severity levels.  Installing `loguru` is not necessary, but considered a nice option by many.
-
 ### Logging Levels
 
 Logging levels allow a developer to provide a "severity" level to their messages, which can be filtered out at runtime. Logging levels follow a hierarchical structure, and setting a specific level ignores any levels that are "less severe". As an example, using
@@ -200,7 +189,7 @@ The logging level hierarchy is as follows:
 DEBUG < INFO < WARNING < ERROR < CRITICAL
 ```
 
-**Note**: `set_log_level()` takes either strings (e.g., `"WARNING"`) or default logger integer values.  Either works regardless of whether one is using default python logger or `loguru`.
+**Note**: `set_log_level()` takes either strings (e.g., `"WARNING"`) or default logger integer values.
 
 ### `warn_once` Function
 
