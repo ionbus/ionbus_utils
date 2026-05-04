@@ -84,6 +84,28 @@ def test_stringify_dataframe_and_markdown(monkeypatch):
     assert "| date" in md
 
 
+def test_dataframe_to_markdown_aligns_string_dtypes(monkeypatch):
+    """String-like columns are left-aligned across pandas dtype defaults."""
+    captured = {}
+    df = pd.DataFrame(
+        {
+            "object_text": pd.Series(["Alice"], dtype=object),
+            "string_text": pd.Series(["Bob"], dtype="string"),
+            "value": [42],
+        }
+    )
+
+    def capture_to_markdown(self, **kwargs):  # noqa: ARG001, ANN001, ANN202
+        captured.update(kwargs)
+        return "| ok |"
+
+    monkeypatch.setattr(pd.DataFrame, "to_markdown", capture_to_markdown)
+
+    pu.dataframe_to_markdown(df, stringify=False)
+
+    assert captured["colalign"] == ["left", "left", "right"]
+
+
 def test_create_rolled_up_frame_simple():
     """create_rolled_up_frame produces expected totals."""
     frame = pd.DataFrame(

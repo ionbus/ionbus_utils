@@ -342,7 +342,7 @@ these components use `threading.Lock` and are safe for concurrent use:
 
 ## dependencies
 
-cryptography, duckdb, packaging, pandas (<3), polars, pyarrow, pydantic
+cryptography, duckdb, packaging, pandas (>=1.3), polars, pyarrow, pydantic
 (>=2.7), pyyaml, requests, setuptools, typing-extensions.
 
 optional: loguru (auto-detected), tabulate (for markdown export).

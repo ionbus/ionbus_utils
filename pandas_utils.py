@@ -550,7 +550,15 @@ def dataframe_to_markdown(
     # Build colalign list based on original dtypes
     colalign = [
         colalign_override.get(
-            col, "left" if str(df[col].dtype) == "object" else "right"
+            col,
+            (
+                "left"
+                if (
+                    pd.api.types.is_object_dtype(df[col])
+                    or pd.api.types.is_string_dtype(df[col])
+                )
+                else "right"
+            ),
         )
         for col in df.columns
     ]
