@@ -32,6 +32,7 @@ git_locations_re = re.compile(r"^(\S+)\s*(\S+)\s\[(\S+?)\]\s*$")
 not_repo_re = re.compile(r"not a git repository")
 short_log_tag_re = re.compile(r"[\da-f]{6} \(.*?tag: ([^\),]+)")
 short_log_comment_with_parens_re = re.compile(r"[\da-f]{6}.+?\) (.+)$")
+github_pr_suffix_re = re.compile(r"\s+#\d+\s*$")
 hash_re = re.compile(r"#\w+")
 space_re = re.compile(r"\s+")
 tag_re = re.compile(r"^([^\-]+)")
@@ -389,6 +390,7 @@ def auto_generate_tag(  # noqa: C901, PLR0912
             continue
         prev_tag = match.group(1)
         break
+    comment = github_pr_suffix_re.sub("", comment)
 
     if prev_tag:
         raise RuntimeError("head already tagged")

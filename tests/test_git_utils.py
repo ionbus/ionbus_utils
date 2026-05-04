@@ -89,3 +89,20 @@ def test_auto_generate_tag_increments_minor(monkeypatch):
     monkeypatch.setattr(bg, "get_git_command_output_as_string", fake_git_output)
     tag = bg.auto_generate_tag("dummy")
     assert tag == "1.3.0"
+
+
+def test_auto_generate_tag_ignores_github_pr_suffix(monkeypatch):
+    """Terminal GitHub PR suffixes should not be treated as version tags."""
+    log_output = "abc123 (HEAD -> dev) #Minor fix #23\n"
+    describe_output = "1.2.3\n"
+
+    def fake_git_output(cmd, repo_dir=None):
+        if cmd.startswith("git log"):
+            return log_output
+        if cmd.startswith("git describe"):
+            return describe_output
+        return ""
+
+    monkeypatch.setattr(bg, "get_git_command_output_as_string", fake_git_output)
+    tag = bg.auto_generate_tag("dummy")
+    assert tag == "1.3.0"
