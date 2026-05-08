@@ -93,6 +93,57 @@ if ! git describe --exact-match --tags HEAD >/dev/null 2>&1; then
 fi
 TAG=$(git describe --exact-match --tags HEAD)
 echo "HEAD tag: $TAG"
+export GIT_DESCRIBE_TAG="$TAG"
+
+verify_built_package_version() {
+    python -c '
+import email.parser
+import pathlib
+import re
+import sys
+import zipfile
+
+tag = sys.argv[1]
+wheels = sorted(pathlib.Path("dist").glob(f"*{tag}*.whl"))
+if len(wheels) != 1:
+    raise SystemExit(f"expected exactly one wheel for {tag}, found {len(wheels)}")
+
+version_re = re.compile("__version__\\s*=\\s*([\\\"\\x27])([^\\\"\\x27]+)\\1")
+
+with zipfile.ZipFile(wheels[0]) as zf:
+    names = zf.namelist()
+    metadata_names = [n for n in names if n.endswith(".dist-info/METADATA")]
+    if len(metadata_names) != 1:
+        raise SystemExit(
+            f"expected exactly one wheel METADATA file, found {len(metadata_names)}"
+        )
+    version_names = [n for n in names if n == "ionbus_utils/_version.py"]
+    if len(version_names) != 1:
+        raise SystemExit(
+            f"expected exactly one wheel _version.py, found {len(version_names)}"
+        )
+
+    metadata = email.parser.Parser().parsestr(
+        zf.read(metadata_names[0]).decode("utf-8")
+    )
+    metadata_version = metadata["Version"]
+    version_text = zf.read(version_names[0]).decode("utf-8")
+    runtime_match = version_re.search(version_text)
+    runtime_version = runtime_match.group(2) if runtime_match else None
+
+if runtime_version is None:
+    raise SystemExit("could not read runtime version from wheel _version.py")
+if metadata_version != runtime_version:
+    raise SystemExit(
+        "package metadata version does not match runtime version: "
+        f"{metadata_version!r} != {runtime_version!r}"
+    )
+if metadata_version != tag:
+    raise SystemExit(
+        f"package metadata version {metadata_version!r} does not match tag {tag!r}"
+    )
+    ' "$1"
+}
 
 echo "=== Cleaning previous build artifacts ==="
 rm -rf dist build
@@ -103,6 +154,7 @@ if [ "$conda_only" -eq 1 ]; then
 else
     echo "=== Building pip wheel ==="
     python -m build --wheel
+    verify_built_package_version "$TAG"
 
     if [ "$skip_pip_upload" -eq 1 ]; then
         echo "=== Skipping pip upload (--skip-pip) ==="

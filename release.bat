@@ -58,6 +58,7 @@ if not defined TAG (
     exit /b 1
 )
 echo HEAD tag: !TAG!
+set "GIT_DESCRIBE_TAG=!TAG!"
 
 echo === Cleaning previous build artifacts ===
 if exist dist rmdir /s /q dist
