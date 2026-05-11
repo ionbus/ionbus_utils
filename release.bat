@@ -1,172 +1,367 @@
 @echo off
-REM Build and publish ionbus-utils to PyPI and Anaconda.
-REM Prereqs: activate an env that has: build, twine, conda-build, anaconda-client.
-REM Auth: %USERPROFILE%\.pypirc for PyPI, `anaconda login` for Anaconda.
-REM Run `release.bat --help` for full option list.
-
 setlocal enabledelayedexpansion
 
+set "ENV_NAME=pixi_313_pd22"
+set "RUN_ENV=%USERPROFILE%\bin\python_env_management\run_env.bat"
 set "ANACONDA_USER=ionbus"
-set "DO_TAG=0"
-set "TEST_PYPI=0"
-set "CONDA_ONLY=0"
-set "PIP_ONLY=0"
-set "SKIP_PIP=0"
-set "ANY_BRANCH=0"
+set "MODE=%~1"
+if "%MODE%"=="" set "MODE=build-pip"
+set "TAG_FLAG="
+set "ANY_BRANCH="
+set "ALLOW_DIRTY="
+set "CREATED_TAG="
+set "RELEASE_TAG="
+set "CONDA_BLD_DIR=%~dp0..\ionbus_utils_conda-bld"
 
-:parse_args
-if "%~1"=="" goto after_args
-if /i "%~1"=="-h"            goto :show_help
-if /i "%~1"=="--help"        goto :show_help
-if /i "%~1"=="/?"            goto :show_help
-if /i "%~1"=="--tag"         (set "DO_TAG=1" & shift & goto parse_args)
-if /i "%~1"=="--test"        (set "TEST_PYPI=1" & shift & goto parse_args)
-if /i "%~1"=="--conda-only"  (set "CONDA_ONLY=1" & shift & goto parse_args)
-if /i "%~1"=="--pip-only"    (set "PIP_ONLY=1" & shift & goto parse_args)
-if /i "%~1"=="--skip-pip"    (set "SKIP_PIP=1" & shift & goto parse_args)
-if /i "%~1"=="--any-branch"  (set "ANY_BRANCH=1" & shift & goto parse_args)
-echo Unknown arg: %~1 1>&2
-echo Run with --help for usage. 1>&2
-exit /b 2
-:after_args
+if /I "%MODE%"=="-h" goto show_help
+if /I "%MODE%"=="--help" goto show_help
+if /I "%MODE%"=="help" goto show_help
 
-if "%PIP_ONLY%"=="1" if "%CONDA_ONLY%"=="1" (
-    echo ERROR: --pip-only and --conda-only are mutually exclusive. 1>&2
+if /I "%MODE%"=="all" goto parse_options
+if /I "%MODE%"=="build" goto parse_options
+if /I "%MODE%"=="send" goto parse_options
+if /I "%MODE%"=="build-pip" goto parse_options
+if /I "%MODE%"=="send-pip" goto parse_options
+if /I "%MODE%"=="build-conda" goto parse_options
+if /I "%MODE%"=="send-conda" goto parse_options
+goto usage_error
+
+:parse_options
+shift
+if "%~1"=="" goto after_options
+if /I "%~1"=="-h" goto show_help
+if /I "%~1"=="--help" goto show_help
+if /I "%~1"=="help" goto show_help
+if /I "%~1"=="--tag" (
+    set "TAG_FLAG=--tag"
+    goto parse_options
+)
+if /I "%~1"=="--any-branch" (
+    set "ANY_BRANCH=--any-branch"
+    goto parse_options
+)
+if /I "%~1"=="--allow-dirty" (
+    set "ALLOW_DIRTY=--allow-dirty"
+    goto parse_options
+)
+goto usage_error
+
+:after_options
+if defined ALLOW_DIRTY if /I not "%MODE%"=="build-conda" (
+    echo ERROR: --allow-dirty is only supported with build-conda. 1>&2
     exit /b 2
+)
+if defined ALLOW_DIRTY if defined TAG_FLAG (
+    echo ERROR: --allow-dirty cannot be combined with --tag. 1>&2
+    exit /b 2
+)
+
+if not exist "%RUN_ENV%" (
+    echo ERROR: could not find run_env.bat at %RUN_ENV%
+    exit /b 1
 )
 
 cd /d "%~dp0"
 
-echo === Verifying branch ===
-for /f "delims=" %%b in ('git branch --show-current') do set "CURRENT_BRANCH=%%b"
-if not "%ANY_BRANCH%"=="1" if not "!CURRENT_BRANCH!"=="main" (
-    echo ERROR: on branch '!CURRENT_BRANCH!', not 'main'. Use --any-branch to override. 1>&2
-    exit /b 1
-)
-echo Branch: !CURRENT_BRANCH!
+if not defined ANY_BRANCH call :verify_main_branch
+if errorlevel 1 exit /b 1
+call :maybe_tag
+if errorlevel 1 exit /b 1
 
-if "%DO_TAG%"=="1" (
-    echo === Running auto_tag ===
-    python git_utils\auto_tag.py . --throw-on-failure
-    if errorlevel 1 goto :fail
-)
+if /I "%MODE%"=="all" goto all
+if /I "%MODE%"=="build" goto build
+if /I "%MODE%"=="send" goto send
+if /I "%MODE%"=="build-pip" goto build_pip
+if /I "%MODE%"=="send-pip" goto send_pip
+if /I "%MODE%"=="build-conda" goto build_conda
+if /I "%MODE%"=="send-conda" goto send_conda
+goto usage_error
 
-echo === Verifying HEAD is tagged ===
-for /f "delims=" %%t in ('git describe --exact-match --tags HEAD 2^>nul') do set "TAG=%%t"
-if not defined TAG (
-    echo ERROR: HEAD is not tagged. Create a new tag ^(e.g. re-run with --tag^). 1>&2
-    exit /b 1
-)
-echo HEAD tag: !TAG!
-set "GIT_DESCRIBE_TAG=!TAG!"
-
-echo === Cleaning previous build artifacts ===
-if exist dist rmdir /s /q dist
-if exist build rmdir /s /q build
-for /d %%D in (*.egg-info) do rmdir /s /q "%%D"
-
-if "%CONDA_ONLY%"=="1" (
-    echo === Skipping pip build+upload ^(--conda-only^) ===
-) else (
-    echo === Building pip wheel ===
-    python -m build --wheel
-    if errorlevel 1 goto :fail
-
-    if "%SKIP_PIP%"=="1" (
-        echo === Skipping pip upload ^(--skip-pip^) ===
-    ) else if "%TEST_PYPI%"=="1" (
-        echo === Uploading to TestPyPI ===
-        python -m twine upload --repository testpypi dist/*
-        if errorlevel 1 goto :fail
-    ) else (
-        echo === Uploading to PyPI ===
-        python -m twine upload dist/*
-        if errorlevel 1 goto :fail
-    )
-)
-
-if "%PIP_ONLY%"=="1" (
-    echo === Skipping conda build+upload ^(--pip-only^) ===
-    echo === Done: released !TAG! ^(pip only^) ===
-    endlocal
-    exit /b 0
-)
-
-REM Force win-64 solver on Windows ARM (conda-forge lacks win-arm64 python).
-REM Harmless on native x64.
-set "CONDA_SUBDIR=win-64"
-
-echo === Resolving conda output path ===
-for /f "delims=" %%i in ('conda build conda-recipe -c conda-forge --output') do set "CONDA_PKG=%%i"
-echo Will build: !CONDA_PKG!
-
-echo === Building conda package ===
-conda build conda-recipe -c conda-forge
-if errorlevel 1 goto :fail
-
-REM Locate anaconda-client. Not on PATH when running from a non-base env,
-REM so fall back to the miniforge install location.
-set "ANACONDA_EXE=anaconda"
-where anaconda >nul 2>&1
-if errorlevel 1 (
-    if exist "%USERPROFILE%\miniforge3\Scripts\anaconda.exe" (
-        set "ANACONDA_EXE=%USERPROFILE%\miniforge3\Scripts\anaconda.exe"
-    ) else (
-        echo ERROR: anaconda-client not found. Install with: 1>&2
-        echo   conda install -n base -c conda-forge anaconda-client -y 1>&2
-        goto :fail
-    )
-)
-
-echo === Uploading to Anaconda (user: %ANACONDA_USER%) ===
-"!ANACONDA_EXE!" upload --user %ANACONDA_USER% "!CONDA_PKG!"
-if errorlevel 1 goto :fail
-
-echo === Done: released !TAG! ===
-endlocal
+:usage
+echo Usage: %~nx0 [all^|build^|send^|build-pip^|send-pip^|build-conda^|send-conda] [--tag] [--any-branch] [--allow-dirty]
+echo   all: build and publish Python and conda artifacts
+echo   build: build Python and conda artifacts locally
+echo   send: publish Python and conda artifacts
+echo   build-pip: build Python artifacts locally
+echo   send-pip: publish Python artifacts
+echo   build-conda: build conda artifact locally
+echo   send-conda: publish conda artifact
+echo   --tag: create and verify a new local git tag before running
+echo   --any-branch: skip the main-branch check
+echo   --allow-dirty: allow only build-conda to build a local test artifact
 exit /b 0
 
 :show_help
-echo.
-echo Usage: release.bat [options]
-echo.
-echo Builds and publishes ionbus-utils to PyPI and Anaconda.
-echo.
-echo By default: requires HEAD to be tagged, then builds+uploads BOTH the
-echo pip wheel (to PyPI) and the conda package (to Anaconda user "ionbus").
-echo.
-echo Options:
-echo   -h, --help      Show this help and exit.
-echo   --tag           Before building, run auto_tag to create and push a
-echo                   new tag from commit-message hashtags (#Major/
-echo                   #Minor/#Inc/#Fix/#RC/#Prod).
-echo   --test          Upload the pip wheel to TestPyPI instead of PyPI.
-echo                   No effect with --conda-only.
-echo   --pip-only      Build and upload ONLY the pip wheel. Skip the
-echo                   conda build and Anaconda upload entirely.
-echo   --conda-only    Build and upload ONLY the conda package. Skip the
-echo                   pip wheel build and PyPI upload entirely.
-echo   --skip-pip      Build the pip wheel but do not upload it. The
-echo                   conda build and upload still run.
-echo   --any-branch    Skip the requirement to be on the main branch.
-echo.
-echo Flags can be combined, e.g. --tag --conda-only.
-echo Mutually exclusive: --pip-only and --conda-only.
-echo.
-echo Examples:
-echo   release.bat                       full release (pip + conda)
-echo   release.bat --tag                 auto-create tag, then full release
-echo   release.bat --pip-only            pip only, to PyPI
-echo   release.bat --pip-only --test     pip only, to TestPyPI
-echo   release.bat --conda-only          conda only
-echo   release.bat --skip-pip            build wheel (no upload), push conda
-echo   release.bat --any-branch          release from a non-main branch
-echo.
-endlocal
+call :usage
 exit /b 0
 
-:fail
+:usage_error
+call :usage
+exit /b 2
+
+:verify_main_branch
+set "CURRENT_BRANCH="
+for /f "usebackq delims=" %%I in (`git rev-parse --abbrev-ref HEAD 2^>nul`) do set "CURRENT_BRANCH=%%I"
+if /I not "%CURRENT_BRANCH%"=="main" (
+    echo ERROR: not on main branch ^(currently on '%CURRENT_BRANCH%'^). 1>&2
+    echo Use --any-branch to override. 1>&2
+    exit /b 1
+)
+exit /b 0
+
+:verify_clean_tree
+set "DIRTY_TREE="
+for /f "usebackq delims=" %%I in (`git status --porcelain`) do set "DIRTY_TREE=1"
+if defined DIRTY_TREE (
+    echo ERROR: release requires a clean git tree. 1>&2
+    git status --short 1>&2
+    exit /b 1
+)
+exit /b 0
+
+:get_tag
+set "GIT_DESCRIBE_TAG="
+for /f "usebackq delims=" %%I in (`git describe --tags --exact-match 2^>nul`) do set "GIT_DESCRIBE_TAG=%%I"
+if not defined GIT_DESCRIBE_TAG (
+    echo ERROR: HEAD is not tagged. Re-run with --tag to create a release tag first.
+    exit /b 1
+)
+exit /b 0
+
+:verify_tag
+call :get_tag
+if errorlevel 1 exit /b 1
+if not "%~1"=="" (
+    if /I not "%GIT_DESCRIBE_TAG%"=="%~1" (
+        echo ERROR: expected HEAD tag "%~1" but found "%GIT_DESCRIBE_TAG%"
+        exit /b 1
+    )
+)
+exit /b 0
+
+:ensure_release_context
+if not defined ALLOW_DIRTY (
+    call :verify_clean_tree
+    if errorlevel 1 exit /b 1
+) else (
+    echo WARNING: building local conda test artifact from a dirty tree. 1>&2
+)
+call :verify_tag
+if errorlevel 1 exit /b 1
+set "RELEASE_TAG=%GIT_DESCRIBE_TAG%"
+set "GIT_DESCRIBE_TAG=%RELEASE_TAG%"
+exit /b 0
+
+:get_conda_build_exe
+set "CONDA_BUILD_EXE="
+for /f "usebackq delims=" %%I in (`call "%RUN_ENV%" "%ENV_NAME%" where conda-build 2^>nul`) do set "CONDA_BUILD_EXE=%%I"
+if defined CONDA_BUILD_EXE exit /b 0
+where conda >nul 2>nul
+if errorlevel 1 (
+    echo ERROR: conda-build is not available in %ENV_NAME% and conda is not on PATH
+    exit /b 1
+)
+set "CONDA_BUILD_EXE=conda"
+exit /b 0
+
+:get_anaconda_exe
+set "ANACONDA_EXE="
+for /f "usebackq delims=" %%I in (`call "%RUN_ENV%" "%ENV_NAME%" where anaconda 2^>nul`) do set "ANACONDA_EXE=%%I"
+if defined ANACONDA_EXE exit /b 0
+where anaconda >nul 2>nul
+if errorlevel 1 (
+    echo ERROR: anaconda-client is not available in %ENV_NAME% and anaconda is not on PATH
+    exit /b 1
+)
+set "ANACONDA_EXE=anaconda"
+exit /b 0
+
+:get_conda_output
+call :get_conda_build_exe
+if errorlevel 1 exit /b 1
+set "CONDA_OUTPUT_PATH="
+if /I "%CONDA_BUILD_EXE%"=="conda" (
+    for /f "usebackq delims=" %%I in (`conda build conda-recipe -c conda-forge --croot "%CONDA_BLD_DIR%" --output`) do set "CONDA_OUTPUT_PATH=%%I"
+) else (
+    for /f "usebackq delims=" %%I in (`"%CONDA_BUILD_EXE%" conda-recipe -c conda-forge --croot "%CONDA_BLD_DIR%" --output`) do set "CONDA_OUTPUT_PATH=%%I"
+)
+if not defined CONDA_OUTPUT_PATH (
+    echo ERROR: failed to compute conda artifact output path
+    exit /b 1
+)
+exit /b 0
+
+:verify_dist
+set "DIST_OK="
+for %%F in (dist\*.whl) do (
+    echo %%~nxF | findstr /C:"%RELEASE_TAG%" >nul && set "DIST_OK=1"
+)
+if not defined DIST_OK (
+    echo ERROR: expected wheel for tag %RELEASE_TAG% in dist\
+    exit /b 1
+)
+set "DIST_OK="
+for %%F in (dist\*.tar.gz) do (
+    echo %%~nxF | findstr /C:"%RELEASE_TAG%" >nul && set "DIST_OK=1"
+)
+if not defined DIST_OK (
+    echo ERROR: expected sdist for tag %RELEASE_TAG% in dist\
+    exit /b 1
+)
+exit /b 0
+
+:cleanup_pip
+if exist build rmdir /s /q build
+if exist dist rmdir /s /q dist
+for /d %%D in (*.egg-info) do rmdir /s /q "%%D"
+exit /b 0
+
+:cleanup_conda
+if exist "%CONDA_BLD_DIR%" rmdir /s /q "%CONDA_BLD_DIR%"
+exit /b 0
+
+:maybe_tag
+if /I not "%TAG_FLAG%"=="--tag" exit /b 0
+call :verify_clean_tree
+if errorlevel 1 exit /b 1
+set "TAG_OUTPUT="
+for /f "usebackq delims=" %%I in (`call "%RUN_ENV%" "%ENV_NAME%" python -m ionbus_utils.git_utils.auto_tag . --name-only 2^>^&1`) do set "TAG_OUTPUT=%%I"
+set "CREATED_TAG=%TAG_OUTPUT%"
+if not "!TAG_OUTPUT:tag='=!"=="!TAG_OUTPUT!" (
+    for /f "tokens=2 delims='" %%I in ("!TAG_OUTPUT!") do set "CREATED_TAG=%%I"
+)
+if not defined CREATED_TAG (
+    echo ERROR: failed to compute new tag name
+    exit /b 1
+)
+git rev-parse -q --verify "refs/tags/%CREATED_TAG%" >nul 2>nul
+if not errorlevel 1 (
+    echo ERROR: tag "%CREATED_TAG%" already exists locally
+    exit /b 1
+)
+git tag -a "%CREATED_TAG%" -m "auto-tag %CREATED_TAG%"
+if errorlevel 1 exit /b 1
+call :verify_tag "%CREATED_TAG%"
+if errorlevel 1 exit /b 1
+echo Created local tag: %CREATED_TAG%
+exit /b 0
+
+:build_pip_release
+call :ensure_release_context
+if errorlevel 1 exit /b 1
+call :cleanup_pip
+call "%RUN_ENV%" "%ENV_NAME%" python -c "import build"
+if errorlevel 1 (
+    call "%RUN_ENV%" "%ENV_NAME%" python setup.py sdist bdist_wheel
+    if errorlevel 1 exit /b 1
+) else (
+    call "%RUN_ENV%" "%ENV_NAME%" python -m build --no-isolation --skip-dependency-check
+    if errorlevel 1 (
+        call "%RUN_ENV%" "%ENV_NAME%" python setup.py sdist bdist_wheel
+        if errorlevel 1 exit /b 1
+    )
+)
+call "%RUN_ENV%" "%ENV_NAME%" python -c "import twine"
+if errorlevel 1 (
+    echo WARNING: twine is not installed in %ENV_NAME%; skipping twine check
+) else (
+    call "%RUN_ENV%" "%ENV_NAME%" python -c "import pathlib, subprocess, sys; files=sorted(str(p) for p in pathlib.Path('dist').glob('*')); sys.exit(subprocess.run([sys.executable, '-m', 'twine', 'check', *files], check=False).returncode if files else 1)"
+    if errorlevel 1 exit /b 1
+)
+call :verify_dist
+if errorlevel 1 exit /b 1
+echo Built Python artifacts in: %CD%\dist
+exit /b 0
+
+:build_conda_release
+call :ensure_release_context
+if errorlevel 1 exit /b 1
+call :cleanup_conda
+set "CONDA_SUBDIR=win-64"
+call :get_conda_output
+if errorlevel 1 exit /b 1
+if /I "%CONDA_BUILD_EXE%"=="conda" (
+    conda build conda-recipe -c conda-forge --croot "%CONDA_BLD_DIR%"
+    if errorlevel 1 exit /b 1
+) else (
+    "%CONDA_BUILD_EXE%" conda-recipe -c conda-forge --croot "%CONDA_BLD_DIR%"
+    if errorlevel 1 exit /b 1
+)
+if not exist "%CONDA_OUTPUT_PATH%" (
+    echo ERROR: expected conda artifact was not created: %CONDA_OUTPUT_PATH%
+    exit /b 1
+)
+echo %CONDA_OUTPUT_PATH% | findstr /C:"%RELEASE_TAG%" >nul
+if errorlevel 1 (
+    echo ERROR: conda artifact does not contain tag %RELEASE_TAG%: %CONDA_OUTPUT_PATH%
+    exit /b 1
+)
+echo Built conda artifact: %CONDA_OUTPUT_PATH%
+exit /b 0
+
+:send_pip_release
+call :ensure_release_context
+if errorlevel 1 exit /b 1
+call :verify_dist
+if errorlevel 1 exit /b 1
+call "%RUN_ENV%" "%ENV_NAME%" python -c "import pathlib, subprocess, sys; files=sorted(str(p) for p in pathlib.Path('dist').glob('*')); sys.exit(subprocess.run([sys.executable, '-m', 'twine', 'upload', *files], check=False).returncode if files else 1)"
+exit /b %errorlevel%
+
+:send_conda_release
+call :ensure_release_context
+if errorlevel 1 exit /b 1
+call :get_conda_output
+if errorlevel 1 exit /b 1
+if not exist "%CONDA_OUTPUT_PATH%" (
+    echo ERROR: expected conda artifact is missing: %CONDA_OUTPUT_PATH%
+    exit /b 1
+)
+call :get_anaconda_exe
+if errorlevel 1 exit /b 1
+"%ANACONDA_EXE%" -s anaconda.org upload -u "%ANACONDA_USER%" "%CONDA_OUTPUT_PATH%"
+exit /b %errorlevel%
+
+:build_release
+call :build_pip_release
+if errorlevel 1 exit /b 1
+call :build_conda_release
+if errorlevel 1 exit /b 1
 echo.
-echo *** Release failed ***
-endlocal
-exit /b 1
+echo Version/tag used: %RELEASE_TAG%
+exit /b 0
+
+:send_release
+call :send_pip_release
+if errorlevel 1 exit /b 1
+call :send_conda_release
+exit /b %errorlevel%
+
+:all
+call :build_release
+if errorlevel 1 exit /b 1
+call :send_release
+exit /b %errorlevel%
+
+:build
+call :build_release
+exit /b %errorlevel%
+
+:send
+call :send_release
+exit /b %errorlevel%
+
+:build_pip
+call :build_pip_release
+exit /b %errorlevel%
+
+:send_pip
+call :send_pip_release
+exit /b %errorlevel%
+
+:build_conda
+call :build_conda_release
+exit /b %errorlevel%
+
+:send_conda
+call :send_conda_release
+exit /b %errorlevel%
