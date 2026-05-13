@@ -79,11 +79,11 @@ goto usage_error
 
 :usage
 echo Usage: %~nx0 [all^|build^|send^|build-pip^|send-pip^|build-conda^|send-conda] [--tag] [--any-branch] [--allow-dirty]
-echo   all: build and publish Python and conda artifacts
-echo   build: build Python and conda artifacts locally
-echo   send: publish Python and conda artifacts
-echo   build-pip: build Python artifacts locally
-echo   send-pip: publish Python artifacts
+echo   all: build and publish pip artifacts, then conda artifacts
+echo   build: build pip and conda artifacts locally
+echo   send: publish pip and conda artifacts
+echo   build-pip: build pip artifacts locally
+echo   send-pip: publish pip artifacts
 echo   build-conda: build conda artifact locally
 echo   send-conda: publish conda artifact
 echo   --tag: create and verify a new local git tag before running
@@ -270,7 +270,7 @@ if errorlevel 1 (
 )
 call :verify_dist
 if errorlevel 1 exit /b 1
-echo Built Python artifacts in: %CD%\dist
+echo Built pip artifacts in: %CD%\dist
 exit /b 0
 
 :build_conda_release
@@ -337,9 +337,16 @@ call :send_conda_release
 exit /b %errorlevel%
 
 :all
-call :build_release
+call :build_pip_release
 if errorlevel 1 exit /b 1
-call :send_release
+call :send_pip_release
+if errorlevel 1 exit /b 1
+call :build_conda_release
+if errorlevel 1 exit /b 1
+call :send_conda_release
+if errorlevel 1 exit /b 1
+echo.
+echo Version/tag used: %RELEASE_TAG%
 exit /b %errorlevel%
 
 :build

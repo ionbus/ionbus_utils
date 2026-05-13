@@ -15,11 +15,11 @@ usage() {
   echo "Usage:"
   echo "  $0 [all|build|send|build-pip|send-pip|build-conda|send-conda]"
   echo "     [--tag] [--any-branch] [--allow-dirty]"
-  echo "  all: build and publish Python and conda artifacts"
-  echo "  build: build Python and conda artifacts locally"
-  echo "  send: publish Python and conda artifacts"
-  echo "  build-pip: build Python artifacts locally"
-  echo "  send-pip: publish Python artifacts"
+  echo "  all: build and publish pip artifacts, then conda artifacts"
+  echo "  build: build pip and conda artifacts locally"
+  echo "  send: publish pip and conda artifacts"
+  echo "  build-pip: build pip artifacts locally"
+  echo "  send-pip: publish pip artifacts"
   echo "  build-conda: build conda artifact locally"
   echo "  send-conda: publish conda artifact"
   echo "  --tag: create and verify a new local git tag before running"
@@ -288,7 +288,7 @@ build_pip_artifacts() {
 
   verify_python_artifacts "$tag"
   verify_built_package_versions "$tag"
-  echo "Built Python artifacts in: $ROOT_DIR/dist"
+  echo "Built pip artifacts in: $ROOT_DIR/dist"
 }
 
 get_conda_build_exe() {
@@ -421,8 +421,13 @@ send_release() {
 }
 
 all_release() {
-  build_release
-  send_release
+  build_pip_artifacts
+  send_pip_artifacts
+  build_conda_artifacts
+  send_conda_artifacts
+
+  echo
+  echo "Version/tag used: $RELEASE_TAG"
 }
 
 [[ -n "$ANY_BRANCH" ]] || verify_main_branch
