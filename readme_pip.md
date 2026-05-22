@@ -26,9 +26,9 @@ pip install -e .
 | `date_utils` | Date conversion, month boundaries, ISO formatting |
 | `enumerate` | C++-style enumerations with bit flags and key-value support |
 | `exceptions` | Exception formatting and logging helpers |
-| `file_utils` | File operations, hashing, compression, log file management |
+| `file_utils` | File operations, file hashing, compression, log file management |
 | `general_classes` | Generic utility classes (DictClass, ArgParseRangeAction) |
-| `general` | JSON loading, string/list utilities, compression helpers |
+| `general` | JSON loading, string/list utilities, value hashing, compression helpers |
 | `git_utils` | Git repository management, tagging, submodule handling |
 | `group_utils` | User and group utilities (cross-platform) |
 | `logging_utils` | Enhanced logging with timestamps, custom levels, and `warn_once()` |

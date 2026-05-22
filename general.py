@@ -5,13 +5,14 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import gzip
+import hashlib
 import importlib.util
 import json
 import os
 import re
 import sys
 from collections import namedtuple
-from collections.abc import KeysView
+from collections.abc import Generator, KeysView
 from contextlib import contextmanager
 from copy import deepcopy
 from enum import Enum
@@ -351,8 +352,40 @@ def as_string(string_or_bytes: str | bytes) -> str:
     return string_or_bytes  # type: ignore
 
 
+def get_value_hash(
+    value: str | bytes,
+    use_md5: bool = False,
+    as_base36: bool = False,
+    as_base62: bool = False,
+    encoding: str = "utf-8",
+) -> str:
+    """Returns value hash for strings or bytes.
+
+    Uses blake2b unless use_md5 is True. Strings are encoded before hashing.
+    """
+    if as_base36 and as_base62:
+        raise ValueError("as_base36 and as_base62 are mutually exclusive")
+    if isinstance(value, str):
+        data = value.encode(encoding)
+    elif isinstance(value, bytes):
+        data = value
+    else:
+        raise TypeError("get_value_hash only accepts str or bytes")
+
+    hash_obj = hashlib.md5() if use_md5 else hashlib.blake2b()
+    hash_obj.update(data)
+    hex_digest = hash_obj.hexdigest()
+    if as_base36:
+        return int_to_base(int(hex_digest, 16), base=36)
+    if as_base62:
+        return int_to_base(int(hex_digest, 16), base=62)
+    return hex_digest
+
+
 @contextmanager
-def temporarily_change_dir(destination):
+def temporarily_change_dir(
+    destination: str | os.PathLike,
+) -> Generator[None, None, None]:
     """Context manager to temporarily change directory.
 
     Note: There is no concern about changing directories using os.chdir()
@@ -368,7 +401,7 @@ def temporarily_change_dir(destination):
 
 def compress_and_encode_as_base64(
     input_string: str,
-    gzip_encode="utf-8",
+    gzip_encode: str = "utf-8",
 ) -> str:
     """
     Compresses a string using gzip and encodes it with base64.
@@ -383,7 +416,7 @@ def compress_and_encode_as_base64(
 
 def decompress_and_decode_from_base64(
     encoded_string: str,
-    gzip_encode="utf-8",
+    gzip_encode: str = "utf-8",
 ) -> str:
     """
     Decompresses a base64-encoded string that was compressed with gzip.

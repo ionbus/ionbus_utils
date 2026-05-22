@@ -113,16 +113,21 @@ def get_file_hash(
     use_md5: bool = False,
     chunk_size: int = 65536,
     as_base62: bool = False,
+    as_base36: bool = False,
 ) -> str:
     """Returns file hexadecimal hash (blake2b if use_md5 is false,
     else md5)"""
+    if as_base36 and as_base62:
+        raise ValueError("as_base36 and as_base62 are mutually exclusive")
     hash_obj = hashlib.md5() if use_md5 else hashlib.blake2b()
     with open(filename, "rb") as source:
         while chunk := source.read(chunk_size):
             hash_obj.update(chunk)
     hex_digest = hash_obj.hexdigest()
+    if as_base36:
+        return int_to_base(int(hex_digest, 16), base=36)
     if as_base62:
-        return int_to_base(int(hex_digest, 16))
+        return int_to_base(int(hex_digest, 16), base=62)
     return hex_digest
 
 

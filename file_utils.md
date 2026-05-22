@@ -51,14 +51,16 @@ Compresses a file using gzip.
 - **Returns:** None
 - **Note:** Preserves original file's modification time on compressed file
 
-### `get_file_hash(filename, use_md5=False, chunk_size=65536, as_base62=False)`
+### `get_file_hash(filename, use_md5=False, chunk_size=65536, as_base62=False, as_base36=False)`
 Calculates and returns a file's hash.
 - **Parameters:**
   - `filename`: File to hash
   - `use_md5`: If True, uses MD5; otherwise uses blake2b (default: False)
   - `chunk_size`: Size of chunks to read (default: 65536)
   - `as_base62`: If True, returns hash as base62 string (default: False)
-- **Returns:** str - Hexadecimal hash or base62 string
+  - `as_base36`: If True, returns hash as base36 string (default: False)
+- **Returns:** str - Hexadecimal hash or compact base string
+- **Raises:** ValueError if both `as_base36` and `as_base62` are True
 
 ### `get_logfile_name(prefix="process", log_dir=".", gzip_old_logfiles=True, old_age_days=1, add_uuid=False, ignore_env=False)`
 Generates a log file name with date-based directory structure.
@@ -80,17 +82,14 @@ Generates a log file name with date-based directory structure.
 ## Usage Examples
 
 ```python
-from file_utils import touch_file, file_exists_robust, get_file_hash
+from ionbus_utils.file_utils import get_file_hash, get_logfile_name, touch_file
 
 # Update file modification time
 touch_file("/path/to/file.txt", file_perms=0o644)
 
-# Check if file exists robustly
-if file_exists_robust("/network/path/file.txt"):
-    print("File exists")
-
 # Get file hash
 hash_value = get_file_hash("/path/to/file.bin")
+hash_base36 = get_file_hash("/path/to/file.bin", as_base36=True)
 hash_base62 = get_file_hash("/path/to/file.bin", as_base62=True)
 
 # Generate log filename with automatic old log compression

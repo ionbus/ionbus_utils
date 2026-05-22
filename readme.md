@@ -32,9 +32,9 @@ pip install ionbus-utils
 | `date_utils` | Date conversion, month boundaries, ISO formatting | [Details](#date_utils) |
 | `enumerate` | C++-style enumerations with bit flags and key-value support | [Details](#enumerate) |
 | `exceptions` | Exception formatting and logging helpers | [Details](#exceptions) |
-| `file_utils` | File operations, hashing, compression, log file management | [file_utils.md](file_utils.md) |
+| `file_utils` | File operations, file hashing, compression, log file management | [file_utils.md](file_utils.md) |
 | `general_classes` | Generic utility classes (DictClass, ArgParseRangeAction) | [Details](#general_classes) |
-| `general` | JSON loading, string/list utilities, compression helpers | [Details](#general) |
+| `general` | JSON loading, string/list utilities, value hashing, compression helpers | [Details](#general) |
 | `git_utils` | Git repository management, tagging, submodule handling | [git_utils/readme.md](git_utils/readme.md) |
 | `group_utils` | User and group utilities (cross-platform) | [Details](#group_utils) |
 | `logging_utils` | Enhanced logging with timestamps, custom levels, and `warn_once()` | [logging.md](logging.md) |
@@ -275,6 +275,7 @@ from ionbus_utils.general import (
     open_using,
     compress_and_encode_as_base64,
     decompress_and_decode_from_base64,
+    get_value_hash,
     timestamped_unique_id,
 )
 
@@ -296,6 +297,9 @@ filter_string_rep_of_list(cols, r".*_at$")  # ["created_at", "updated_at"]
 
 # English-style list joining
 comma_join_list([1, 2, 3])  # "1, 2, and 3"
+
+# Hash strings or bytes
+get_value_hash("query text", as_base36=True)
 
 # Open regular or gzip files transparently
 with open_using("data.txt.gz", "rb") as f:
@@ -338,4 +342,3 @@ parser.add_argument(
     help="Provide 1-3 files"
 )
 ```
-

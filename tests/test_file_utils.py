@@ -220,6 +220,18 @@ class TestGetFileHash:
         # Base62 should be alphanumeric
         assert result.isalnum()
 
+    def test_as_base36(self, temp_file):
+        """Test returns base36 string when requested."""
+        result = get_file_hash(temp_file, as_base36=True)
+        assert isinstance(result, str)
+        assert result.isalnum()
+        assert result == result.upper()
+
+    def test_rejects_multiple_base_encodings(self, temp_file):
+        """Test base36 and base62 cannot both be requested."""
+        with pytest.raises(ValueError):
+            get_file_hash(temp_file, as_base36=True, as_base62=True)
+
 
 class TestGetLogfileName:
     """Tests for get_logfile_name function."""

@@ -26,8 +26,8 @@ linux, mac, wsl). add it as a dependency wherever it saves effort.
 |--------|-----------------|
 | `logging_utils` | structured logger with custom levels, `warn_once`, conditional logging |
 | `cache_utils` | thread-safe in-memory cache (singleton) + file-based `.pkl.gz` caching |
-| `file_utils` | hashing, gzip, log file rotation, file timestamps |
-| `general` | json with comments, base64 compression, **`timestamped_unique_id` for unique ids**, dynamic class loading |
+| `file_utils` | file hashing, gzip, log file rotation, file timestamps |
+| `general` | json with comments, string/bytes hashing, base64 compression, **`timestamped_unique_id` for unique ids**, dynamic class loading |
 | `general_classes` | `DictClass` (dict with attribute access), `ArgParseRangeAction` |
 | `date_utils` | date parsing, month boundaries, hive-style partition strings |
 | `time_utils` | timezone helpers, time rounding, `TimePriorityQueue` |
@@ -122,6 +122,7 @@ uses today's `.pkl.gz` file if available, otherwise the most recent.
 from ionbus_utils.file_utils import get_file_hash, gzip_file, get_logfile_name
 
 h = get_file_hash("data.parquet")                    # blake2b hex
+h36 = get_file_hash("data.parquet", as_base36=True)  # compact base36
 h62 = get_file_hash("data.parquet", as_base62=True)  # compact base62
 gzip_file("big.csv")                                 # compresses, preserves mtime
 log = get_logfile_name("myapp", log_dir="/var/log")   # auto-creates YYYY/MM dirs
@@ -136,6 +137,7 @@ log = get_logfile_name("myapp", log_dir="/var/log")   # auto-creates YYYY/MM dir
 from ionbus_utils.general import (
     load_json,
     timestamped_unique_id,
+    get_value_hash,
     compress_and_encode_as_base64,
     open_using,
     convert_string_to_float,
@@ -144,6 +146,7 @@ from ionbus_utils.general import (
 
 config = load_json("config.jsonc")       # handles // comments and trailing commas
 uid = timestamped_unique_id("job")       # job_3kF9a_7xQ2b... (base62, unique)
+fingerprint = get_value_hash("query text", as_base36=True)
 blob = compress_and_encode_as_base64(big_string)
 
 with open_using("data.csv.gz") as f:     # auto-detects gzip by extension

@@ -23,6 +23,7 @@ from ionbus_utils.general import (  # noqa: E402
     dict_to_namedtuple,
     filter_string_rep_of_dict,
     filter_string_rep_of_list,
+    get_value_hash,
     is_non_string_sequence,
     list_to_comma_string,
     load_json,
@@ -355,7 +356,7 @@ class TestTemporarilyChangeDir:
         """Test changes directory temporarily."""
         original = os.getcwd()
         with temporarily_change_dir(temp_dir):
-            assert os.getcwd() == str(temp_dir)
+            assert Path(os.getcwd()).resolve() == temp_dir.resolve()
         assert os.getcwd() == original
 
     def test_restores_on_exception(self, temp_dir):
@@ -495,3 +496,44 @@ class TestAsString:
         """Test strips whitespace from bytes."""
         result = as_string(b"  hello  ")
         assert result == "hello"
+
+
+class TestGetValueHash:
+    """Tests for get_value_hash function."""
+
+    def test_hashes_string_as_blake2b_hex(self):
+        """Test default string hash uses blake2b hex."""
+        result = get_value_hash("hello")
+        assert len(result) == 128
+        int(result, 16)
+
+    def test_hashes_matching_string_and_bytes_equally(self):
+        """Test UTF-8 string bytes produce the same hash."""
+        assert get_value_hash("hello") == get_value_hash(b"hello")
+
+    def test_hashes_md5_when_requested(self):
+        """Test MD5 value hashing."""
+        result = get_value_hash("hello", use_md5=True)
+        assert len(result) == 32
+        int(result, 16)
+
+    def test_hashes_as_base36(self):
+        """Test base36 value hash output."""
+        result = get_value_hash("hello", as_base36=True)
+        assert result.isalnum()
+        assert result == result.upper()
+
+    def test_hashes_as_base62(self):
+        """Test base62 value hash output."""
+        result = get_value_hash("hello", as_base62=True)
+        assert result.isalnum()
+
+    def test_rejects_multiple_base_encodings(self):
+        """Test base36 and base62 cannot both be requested."""
+        with pytest.raises(ValueError):
+            get_value_hash("hello", as_base36=True, as_base62=True)
+
+    def test_rejects_non_string_bytes_values(self):
+        """Test value hashing rejects arbitrary objects."""
+        with pytest.raises(TypeError):
+            get_value_hash({"hello": "world"})  # type: ignore[arg-type]
