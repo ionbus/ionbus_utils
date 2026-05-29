@@ -245,16 +245,22 @@ d = yyyymmdd_to_date("20240723")    # date(2024, 7, 23)
 to_date(datetime.now())    # date object
 to_date(pd.Timestamp(...)) # date object
 to_date("2024-07-23")      # date object
+to_date("2024-07-23", no_none=True)  # date object; raises for None/empty
 
 # ISO format conversion
 to_date_isoformat(date(2024, 7, 23))                    # "2024-07-23"
 to_date_isoformat(date(2024, 7, 23), no_symbols=True)  # "20240723"
+to_date_isoformat("2024-07-23", no_none=True)          # "2024-07-23"
 
 # Month boundary calculations
 first_day_of_month(date(2024, 7, 15))      # date(2024, 7, 1)
 last_day_of_month(date(2024, 7, 15))       # date(2024, 7, 31)
 first_day_of_next_month(date(2024, 7, 15)) # date(2024, 8, 1)
 ```
+
+Pass `no_none=True` to `to_date()` or `to_date_isoformat()` when missing
+inputs should raise `ValueError`; literal `True` also narrows the return
+type to `date` or `str` for type checkers.
 
 ### general
 

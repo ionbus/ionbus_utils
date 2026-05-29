@@ -160,12 +160,19 @@ cls = load_class_from_file("plugins/foo.py", "FooProcessor")  # dynamic loading
 ### date_utils and time_utils — dates, times, timezones
 
 ```python
-from ionbus_utils.date_utils import yyyymmdd_to_date, date_partition_value
+from ionbus_utils.date_utils import (
+    date_partition_value,
+    to_date,
+    to_date_isoformat,
+    yyyymmdd_to_date,
+)
 from ionbus_utils.time_utils import (
     now_nyc, ensure_time, round_timestamp_up, TimePriorityQueue,
 )
 
 d = yyyymmdd_to_date("20240723")
+strict_date = to_date("2024-07-23", no_none=True)
+strict_iso = to_date_isoformat("2024-07-23", no_none=True)
 part = date_partition_value(d, "month")   # "M2024-07"
 
 t = ensure_time("9:15")                  # datetime.time(9, 15)
@@ -175,6 +182,10 @@ ts = round_timestamp_up(now_nyc(), 15)   # round up to next 15-min mark
 q = TimePriorityQueue()                  # thread-safe scheduled queue
 q.add("10:30", my_task)
 ```
+
+`no_none=True` on `to_date` and `to_date_isoformat` raises `ValueError`
+for None or empty values and narrows the return type to `date` or `str`
+when passed as literal `True`.
 
 `TimePriorityQueue` is thread-safe and supports scheduling by time or
 timedelta. useful for event-driven schedulers.

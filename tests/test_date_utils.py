@@ -78,6 +78,11 @@ class TestToDate:
         result = to_date("2024-07-23")
         assert result == dt.date(2024, 7, 23)
 
+    def test_converts_string_with_no_none(self):
+        """Test converting string with None disallowed."""
+        result = to_date("2024-07-23", True)
+        assert result == dt.date(2024, 7, 23)
+
     def test_returns_none_for_none(self):
         """Test returns None for None input."""
         result = to_date(None)
@@ -87,6 +92,16 @@ class TestToDate:
         """Test returns None for empty string."""
         result = to_date("")
         assert result is None
+
+    def test_raises_for_none_with_no_none(self):
+        """Test raises for None when None is disallowed."""
+        with pytest.raises(ValueError, match="got None"):
+            to_date(None, True)
+
+    def test_raises_for_empty_string_with_no_none(self):
+        """Test raises for empty string when None is disallowed."""
+        with pytest.raises(ValueError, match="empty value"):
+            to_date("", True)
 
 
 class TestToDateIsoformat:
@@ -104,6 +119,16 @@ class TestToDateIsoformat:
         result = to_date_isoformat(d, no_symbols=True)
         assert result == "20240723"
 
+    def test_returns_isoformat_with_no_none(self):
+        """Test returns ISO format when None is disallowed."""
+        result = to_date_isoformat("2024-07-23", no_none=True)
+        assert result == "2024-07-23"
+
+    def test_returns_no_symbols_with_no_none(self):
+        """Test returns compact format when None is disallowed."""
+        result = to_date_isoformat("2024-07-23", True, True)
+        assert result == "20240723"
+
     def test_converts_datetime(self):
         """Test converts datetime to date isoformat."""
         d = dt.datetime(2024, 7, 23, 14, 30, 0)
@@ -114,6 +139,16 @@ class TestToDateIsoformat:
         """Test returns None for None input."""
         result = to_date_isoformat(None)
         assert result is None
+
+    def test_raises_for_none_with_no_none(self):
+        """Test raises for None when None is disallowed."""
+        with pytest.raises(ValueError, match="got None"):
+            to_date_isoformat(None, no_none=True)
+
+    def test_raises_for_empty_string_with_no_none(self):
+        """Test raises for empty string when None is disallowed."""
+        with pytest.raises(ValueError, match="empty value"):
+            to_date_isoformat("", no_none=True)
 
 
 class TestFirstDayOfMonth:

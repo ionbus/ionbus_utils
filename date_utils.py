@@ -5,6 +5,7 @@ from __future__ import annotations
 # cSpell: ignore fstring
 # pylint: disable=W0611,C0411,logging-fstring-interpolation
 import datetime as dt
+from typing import Literal, overload
 
 import pandas as pd
 
@@ -22,21 +23,64 @@ def yyyymmdd_to_date(string: str | None) -> dt.date | None:
     )
 
 
+@overload
 def to_date(
     the_date: dt.date | dt.datetime | pd.Timestamp | str | None,
+    no_none: Literal[True],
+) -> dt.date: ...
+
+
+@overload
+def to_date(
+    the_date: dt.date | dt.datetime | pd.Timestamp | str | None,
+    no_none: bool = False,
+) -> dt.date | None: ...
+
+
+def to_date(
+    the_date: dt.date | dt.datetime | pd.Timestamp | str | None,
+    no_none: bool = False,
 ) -> dt.date | None:
     """Returns date (if date/time object) or None"""
     if not the_date:
+        if no_none:
+            raise ValueError("Expected a date value, got None or empty value")
         return None
     return pd.Timestamp(the_date).date()
+
+
+@overload
+def to_date_isoformat(
+    the_date: dt.date | dt.datetime | pd.Timestamp | str | None,
+    no_symbols: bool,
+    no_none: Literal[True],
+) -> str: ...
+
+
+@overload
+def to_date_isoformat(
+    the_date: dt.date | dt.datetime | pd.Timestamp | str | None,
+    no_symbols: bool = False,
+    *,
+    no_none: Literal[True],
+) -> str: ...
+
+
+@overload
+def to_date_isoformat(
+    the_date: dt.date | dt.datetime | pd.Timestamp | str | None,
+    no_symbols: bool = False,
+    no_none: bool = False,
+) -> str | None: ...
 
 
 def to_date_isoformat(
     the_date: dt.date | dt.datetime | pd.Timestamp | str | None,
     no_symbols: bool = False,
+    no_none: bool = False,
 ) -> str | None:
     """Returns date in isoformat string (if date/time object) or None"""
-    if (date_obj := to_date(the_date)) is None:
+    if (date_obj := to_date(the_date, no_none)) is None:
         return None
     ret_val = date_obj.isoformat()
     return ret_val.replace("-", "") if no_symbols else ret_val
