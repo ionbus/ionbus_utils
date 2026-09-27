@@ -5,10 +5,9 @@ from __future__ import annotations
 import os
 import re
 import subprocess
-from glob import glob
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 VERSION_FILE = Path("_version.py")
 VERSION_RE = re.compile(r'__version__\s*=\s*["\']([^"\']+)["\']')
@@ -50,39 +49,21 @@ def read_version_file() -> str:
     return match.group(1)
 
 
-avoid_regexes = [
-    re.compile(f"^{x}$")
-    for x in [
-        r"\d+",
-        "build",
-        "egg-info",
-        "__pycache__",
-        "log",
-        ".+egg-info",
-        "dist",
-    ]
-]
-
-
-def ok_dir(name: str) -> bool:
-    """Returns ok if we should keep"""
-    return all(not regex.search(name) for regex in avoid_regexes)
-
-
 if release_tag := get_release_tag():
     write_version_file(release_tag)
 
 package_version = read_version_file()
 
-all_dirs = [x for x in glob("*") if os.path.isdir(x) and ok_dir(x)]
-packages = ["ionbus_utils"] + [f"ionbus_utils/{x}" for x in all_dirs]
-package_dirs = {
-    "ionbus_utils": ".",
-}
-package_dirs.update({f"ionbus_utils/{x}": f"./{x}" for x in all_dirs})
+# Source lives at the repository root. Include only real subpackages;
+# developer outputs, build directories, and tests are not runtime packages.
+subpackages = find_packages(
+    exclude=("tests", "tests.*", "build", "build.*", "dist", "dist.*")
+)
+packages = ["ionbus_utils"] + [f"ionbus_utils.{name}" for name in subpackages]
+package_dirs = {"ionbus_utils": "."}
 
 # Read the pip-specific readme for PyPI
-with open("readme_pip.md", encoding="utf-8") as readme_file:
+with open("README_PIP.md", encoding="utf-8") as readme_file:
     long_description = readme_file.read()
 
 setup(
@@ -93,11 +74,17 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={
+        "": ["README*.md"],
         "ionbus_utils": [
             "resources/*.pem",
             "resources/*.pkl.gz",
-            "*.md",
-            "*/*.md",
-        ]
+            "logging.md",
+            "cache_utils.md",
+            "file_utils.md",
+            "pandas_utils.md",
+            "subprocess_utils.md",
+            "time_utils.md",
+        ],
     },
+    include_package_data=False,
 )

@@ -9,6 +9,7 @@ This is designed so that it can be installed as a package via pip, or checked ou
 <!-- TOC start (generated with https://bitdowntoc.derlin.ch/) -->
 
 - [Installation](#installation)
+- [Agent Skills](#agent-skills)
 - [Modules](#modules)
 - [Running Tests](#running-tests)
 - [Requirements](#requirements)
@@ -22,27 +23,41 @@ This is designed so that it can be installed as a package via pip, or checked ou
 pip install ionbus-utils
 ```
 
+## Agent Skills
+
+Agents using this package can load its installed [API guide](README_AI.md)
+through a generated skill:
+
+```text
+python -m ionbus_utils.agent_skill install ionbus_utils --platform all --project .
+```
+
+Use the Python environment selected for the current project. See
+[README_AGENT_SKILLS.md](README_AGENT_SKILLS.md) for scope, platform, resource,
+and conflict behavior. Agents developing this repository should read
+[AGENTS.md](AGENTS.md).
+
 ## Modules
 
 | Module | Description | Documentation |
 |--------|-------------|---------------|
 | `base_utils` | Base conversion (2-64) and platform detection | [Details](#base_utils) |
 | `cache_utils` | File-based and in-memory caching with thread-safe operations | [cache_utils.md](cache_utils.md) |
-| `crypto_utils` | AES-128-GCM encryption and authentication file management | [crypto_utils/readme.md](crypto_utils/readme.md) |
+| `crypto_utils` | AES-128-GCM encryption and authentication file management | [crypto_utils/README.md](crypto_utils/README.md) |
 | `date_utils` | Date conversion, month boundaries, ISO formatting | [Details](#date_utils) |
 | `enumerate` | C++-style enumerations with bit flags and key-value support | [Details](#enumerate) |
 | `exceptions` | Exception formatting and logging helpers | [Details](#exceptions) |
 | `file_utils` | File operations, file hashing, compression, log file management | [file_utils.md](file_utils.md) |
 | `general_classes` | Generic utility classes (DictClass, ArgParseRangeAction) | [Details](#general_classes) |
 | `general` | JSON loading, string/list utilities, value hashing, compression helpers | [Details](#general) |
-| `git_utils` | Git repository management, tagging, submodule handling | [git_utils/readme.md](git_utils/readme.md) |
+| `git_utils` | Git repository management, tagging, submodule handling | [git_utils/README.md](git_utils/README.md) |
 | `group_utils` | User and group utilities (cross-platform) | [Details](#group_utils) |
 | `logging_utils` | Enhanced logging with timestamps, custom levels, and `warn_once()` | [logging.md](logging.md) |
 | `pandas_utils` | DataFrame manipulation, rollup operations, markdown export | [pandas_utils.md](pandas_utils.md) |
 | `regex_utils` | Pre-compiled regex patterns for common string operations | [Details](#regex_utils) |
 | `subprocess_utils` | Cross-platform subprocess management and process control | [subprocess_utils.md](subprocess_utils.md) |
 | `time_utils` | DateTime/Timestamp utilities, timezone handling, time rounding | [time_utils.md](time_utils.md) |
-| `yaml_utils` | `PDYaml` class extending Pydantic with YAML support | [yaml_utils/readme.md](yaml_utils/readme.md) |
+| `yaml_utils` | `PDYaml` class extending Pydantic with YAML support | [yaml_utils/README.md](yaml_utils/README.md) |
 
 ## Running Tests
 

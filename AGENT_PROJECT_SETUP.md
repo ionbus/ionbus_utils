@@ -92,11 +92,13 @@ package itself**. It should tell agents to:
     callers, or change impact.
 3.  Inspect actual source and tests before editing; generated
     documentation and graphs are aids, not source of truth.
-4.  Use the project's normal Pixi/uv environment and commands — and
-    **state explicitly which environment agent work in this repository
-    should run in**, since an agent given no stated environment is
-    exactly the case that could silently resolve against the wrong one
-    (see "Environment selection" below).
+4.  Use the project's normal Pixi/uv environment and commands. Don't
+    hardcode a specific environment name in this file — the same
+    repository is worked on across different machines whose
+    environment names differ. Instead, **confirm which environment
+    applies to the current session before running commands** (ask if
+    it isn't already stated), rather than assuming or reusing a name
+    from a prior session (see "Environment selection" below).
 5.  Run the required tests, linting, typing, etc. before completing
     changes.
 

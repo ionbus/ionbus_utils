@@ -8,6 +8,10 @@ install: `pip install ionbus-utils` or `conda install -c ionbus ionbus-utils`
 
 requires python >= 3.9.
 
+Read this installed guide with `python -m ionbus_utils.agent_skill show ionbus_utils`.
+For skill installation and resource access, see
+[README_AGENT_SKILLS.md](README_AGENT_SKILLS.md).
+
 ---
 
 ## when to use this package
@@ -110,8 +114,8 @@ accidental mutation.
 ```python
 from ionbus_utils.cache_utils import cache_filename, load_cache
 
-fname = cache_filename("data", "prices")  # data/prices_20240715.pkl.gz
-data, next_refresh = load_cache("data", "prices")
+fname = cache_filename("prices", directory="data")  # data/prices_YYYYMMDD.pkl.gz
+data, next_refresh = load_cache("prices", "09:00", directory="data")
 ```
 
 uses today's `.pkl.gz` file if available, otherwise the most recent.
@@ -160,6 +164,8 @@ cls = load_class_from_file("plugins/foo.py", "FooProcessor")  # dynamic loading
 ### date_utils and time_utils — dates, times, timezones
 
 ```python
+from datetime import timedelta
+
 from ionbus_utils.date_utils import (
     date_partition_value,
     to_date,
@@ -180,7 +186,7 @@ t2 = ensure_time(930)                    # 930 minutes after midnight
 ts = round_timestamp_up(now_nyc(), 15)   # round up to next 15-min mark
 
 q = TimePriorityQueue()                  # thread-safe scheduled queue
-q.add("10:30", my_task)
+q.add(timedelta(minutes=5), my_task)
 ```
 
 `no_none=True` on `to_date` and `to_date_isoformat` raises `ValueError`

@@ -1,0 +1,5 @@
+# Do not index vendored Graphify instructions or generated skill stubs.
+.agents/
+.claude/skills/
+.claude/CLAUDE.md
+.codex/

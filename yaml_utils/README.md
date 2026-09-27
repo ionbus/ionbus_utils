@@ -65,7 +65,7 @@ A Pydantic BaseModel extension that adds YAML support, automatic parent-child re
 ## Quick Start
 
 ```python
-from ionbus.yaml_utils import PDYaml
+from ionbus_utils.yaml_utils import PDYaml
 
 # Simple class definition
 class Config(PDYaml):
@@ -92,7 +92,7 @@ print(config2.name)  # Output: Config_2
 Here's a complete example demonstrating all features:
 
 ```python
-from ionbus.yaml_utils import PDYaml
+from ionbus_utils.yaml_utils import PDYaml
 from pydantic import Field
 
 
@@ -382,7 +382,7 @@ PDYaml is fully compatible with Pydantic v2 features. All standard Pydantic fiel
 ### Common Pydantic Features
 
 ```python
-from ionbus.yaml_utils import PDYaml
+from ionbus_utils.yaml_utils import PDYaml
 from pydantic import Field, field_validator, computed_field
 
 class ServerConfig(PDYaml):
