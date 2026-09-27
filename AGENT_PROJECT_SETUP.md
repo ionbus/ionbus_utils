@@ -133,16 +133,16 @@ is involved.
 
 ### One shared implementation
 
-The implementation lives once, in `ionbus_utils.agent_skill`, using
-only the Python standard library — deliberately, so it stays trivially
-copyable into a package that doesn't want to depend on `ionbus_utils`.
-It exposes `main()` plus the reusable functions, and supports
-execution with `python -m`.
+The implementation lives once, in `ionbus_utils.agent_skill`, and uses
+only the Python standard library. It exposes `main()` plus the reusable
+functions, and supports execution with `python -m`.
 
-Because every other Ionbus package already depends on `ionbus_utils`,
-the standard install command may assume `ionbus_utils` is importable.
-No other package needs its own `agent_skill` module or its own
-`install()` — they're just named as the target argument:
+`ionbus_utils` is normally installed in environments that use Ionbus
+packages, but those packages do not depend on it for their own
+operation. The standard skill-installation command assumes
+`ionbus_utils` is importable. No other package needs its own
+`agent_skill` module or its own `install()` — they're just named as the
+target argument:
 
 ```bash
 python -m ionbus_utils.agent_skill install <import_package> \
@@ -158,9 +158,10 @@ explicitly, including for `ionbus_utils` installing itself:
 python -m ionbus_utils.agent_skill install ionbus_utils --platform all --project .
 ```
 
-A copy of `agent_skill.py` vendored into a package that doesn't want
-the `ionbus_utils` dependency is a supported fallback, not a second
-invocation form the Ionbus convention guarantees.
+If `ionbus_utils` isn't installed, obtain `agent_skill.py` and run that
+file directly. Because it uses only the Python standard library, it
+requires no additional installer dependency. The rest of this document
+describes the normal installed-`ionbus_utils` workflow.
 
 ### Target-package contract
 
@@ -263,14 +264,11 @@ import package, while the actual capabilities and recipes stay in
 `README_AI.md`. Add a package-specific description override only if
 real discovery failures demonstrate the need.
 
-Because the stub's content is deterministic and version-independent by
-design, re-running `install` doesn't need to detect drift — it just
-needs to be idempotent. The listed pieces of the stub (frontmatter,
-import name, resource filename, invocation form) only change on a
-deliberate breaking rename, which already forces consumers to update
-their own code elsewhere; that's the point at which a reinstall
-naturally happens too, not something requiring its own version-marker
-machinery.
+Because the stub's content is deterministic, no separate version marker
+is needed. Re-running `install` compares the complete generated content
+with the existing file: identical content is a successful no-op, while
+different content is a conflict unless `--force` was supplied. That
+direct comparison provides both drift detection and idempotence.
 
 ### Destination scope
 
@@ -325,6 +323,11 @@ The platform table owns these mappings and any version caveats; call
 sites don't reproduce the paths themselves.
 
 ### Write safety
+
+Before generating or writing any skill files, verify that the target
+package is importable in the selected Python environment and that its
+`README_AI.md` resource exists and is readable. If either check fails,
+report the error and write nothing.
 
 Generate the complete expected content for every selected destination
 and preflight all of them before writing anything:
@@ -390,9 +393,10 @@ Graphify provides structural understanding of the repository to coding
 agents. It manages its own paths and installation — Ionbus doesn't
 invent competing conventions on top of it:
 
--   Install its skill with Graphify's own installer, e.g. `graphify
-    install` for Claude Code or `graphify install --platform codex`
-    for Codex. This writes `.claude/skills/graphify/SKILL.md` and/or
+-   Install its project skill with Graphify's own installer, e.g.
+    `graphify install --project` for Claude Code or `graphify install
+    --project --platform codex` for Codex. This writes
+    `.claude/skills/graphify/SKILL.md` and/or
     `.agents/skills/graphify/SKILL.md` itself.
 -   Its persistent graph/output lives in `graphify-out/` (`graph.html`,
     `GRAPH_REPORT.md`, `graph.json`) — Graphify's own documented
