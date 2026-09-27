@@ -137,12 +137,11 @@ The implementation lives once, in `ionbus_utils.agent_skill`, and uses
 only the Python standard library. It exposes `main()` plus the reusable
 functions, and supports execution with `python -m`.
 
-`ionbus_utils` is normally installed in environments that use Ionbus
-packages, but those packages do not depend on it for their own
-operation. The standard skill-installation command assumes
-`ionbus_utils` is importable. No other package needs its own
-`agent_skill` module or its own `install()` — they're just named as the
-target argument:
+`ionbus_utils` is a normal part of every release and is assumed to be
+installed wherever another Ionbus package is. The standard
+skill-installation command assumes `ionbus_utils` is importable. No
+other package needs its own `agent_skill` module or its own
+`install()` — they're just named as the target argument:
 
 ```bash
 python -m ionbus_utils.agent_skill install <import_package> \
@@ -158,10 +157,17 @@ explicitly, including for `ionbus_utils` installing itself:
 python -m ionbus_utils.agent_skill install ionbus_utils --platform all --project .
 ```
 
-If `ionbus_utils` isn't installed, obtain `agent_skill.py` and run that
-file directly. Because it uses only the Python standard library, it
-requires no additional installer dependency. The rest of this document
-describes the normal installed-`ionbus_utils` workflow.
+Behavior when `ionbus_utils` isn't installed — developing
+`ionbus_utils` itself before it's installed anywhere, or a non-Ionbus
+package that wants this mechanism without the dependency — is left for
+a later revision of this document rather than specified now.
+
+A generic, deliberately Ionbus-agnostic template for that eventual
+fallback — meant to be copied and adapted, not run as-is — lives
+alongside the real implementation as `agent_skill_template.py`, next to
+`ionbus_utils/agent_skill.py`. It is a separate file from the one
+`ionbus_utils` itself runs, precisely so it can stay free of the
+Ionbus-specific assumptions the real module doesn't need to avoid.
 
 ### Target-package contract
 
